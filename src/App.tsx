@@ -37,11 +37,14 @@ import {
   Navigation,
   AlertTriangle,
   Phone,
-  X
+  X,
+  Settings,
+  LogOut
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { AppState, User, Route, Coordinate } from './types';
 import { isRouteIntersectingCircle, findClosestPointOnRoute } from './lib/geoUtils';
+import { MapComponent } from './components/MapComponent';
 
 // Mock Data
 const MOCK_USER: User = {
@@ -125,7 +128,7 @@ export default function App() {
         <Users className="w-6 h-6" />
         <span className="text-[10px] font-medium mt-1">탑승</span>
       </button>
-      <button className="flex flex-col items-center justify-center px-5 py-2 text-slate-400">
+      <button onClick={() => setState('PROFILE')} className={`flex flex-col items-center justify-center px-5 py-2 transition-all ${state === 'PROFILE' ? 'text-primary-container bg-blue-50 rounded-xl' : 'text-slate-400'}`}>
         <UserIcon className="w-6 h-6" />
         <span className="text-[10px] font-medium mt-1">내 정보</span>
       </button>
@@ -214,12 +217,7 @@ export default function App() {
       
       <div className="space-y-6">
         <div className="rounded-xl overflow-hidden h-48 bg-slate-200 relative">
-          <img src="https://picsum.photos/seed/map/600/400" className="w-full h-full object-cover opacity-60" alt="Map" />
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="bg-white/80 backdrop-blur px-4 py-2 rounded-full shadow-lg border border-primary-container/10">
-              <span className="text-xs font-bold text-primary-container">경로를 탐색 중입니다...</span>
-            </div>
-          </div>
+          <MapComponent polylines={[MOCK_ROUTES[0].path]} />
         </div>
 
         <div className="space-y-4">
@@ -266,7 +264,7 @@ export default function App() {
       </div>
 
       <button 
-        onClick={() => setState('DRIVER_CONFIRM')}
+        onClick={() => setState('DRIVER_ACTIVE')}
         className="w-full bg-[#2E7D32] text-white py-5 rounded-xl font-bold text-lg shadow-lg flex items-center justify-center gap-3 active:scale-95 transition-all"
       >
         <Car className="w-6 h-6 fill-current" />
@@ -275,7 +273,7 @@ export default function App() {
     </motion.div>
   );
 
-  const DriverConfirmScreen = () => (
+  const DriverActiveScreen = () => (
     <motion.div 
       initial={{ opacity: 0 }} 
       animate={{ opacity: 1 }} 
@@ -283,13 +281,13 @@ export default function App() {
     >
       <div className="flex-1 relative">
         <div className="absolute inset-0 bg-slate-200">
-          <img src="https://picsum.photos/seed/map-active/800/1200" className="w-full h-full object-cover opacity-40 grayscale" alt="Map" />
+          <MapComponent polylines={[MOCK_ROUTES[0].path]} />
         </div>
         
         <div className="relative z-10 p-6 space-y-6">
           <div className="bg-primary-container text-white p-5 rounded-xl shadow-2xl flex items-center gap-4 border border-white/10">
             <div className="bg-white/20 p-2 rounded-full">
-              <BadgeCheckUser className="w-6 h-6" />
+              <UserCheck className="w-6 h-6" />
             </div>
             <div className="flex-1">
               <p className="text-sm opacity-80">매칭 대기 중</p>
@@ -331,13 +329,115 @@ export default function App() {
 
       <div className="p-6 bg-white/80 backdrop-blur-xl border-t border-slate-100">
         <button 
-          onClick={() => setState('DRIVER_ACTIVE')}
-          className="w-full h-48 bg-primary-container text-white rounded-3xl shadow-2xl flex flex-col items-center justify-center gap-4 active:scale-95 transition-all"
+          onClick={() => setState('DRIVER_MATCHED')}
+          className="w-full h-16 bg-blue-600 text-white rounded-xl shadow-lg flex items-center justify-center gap-3 active:scale-95 transition-all font-bold"
         >
-          <MapPin className="w-12 h-12" />
+          <Search className="w-5 h-5" />
+          (테스트) 탑승자 매칭 시뮬레이션
+        </button>
+      </div>
+    </motion.div>
+  );
+
+  const DriverMatchedScreen = () => (
+    <motion.div 
+      initial={{ opacity: 0, scale: 0.95 }} 
+      animate={{ opacity: 1, scale: 1 }} 
+      className="px-6 py-8 space-y-6 pb-32"
+    >
+      <div className="text-center space-y-2 mb-8">
+        <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
+          <CheckCircle className="w-10 h-10" />
+        </div>
+        <h2 className="text-3xl font-extrabold text-primary-container tracking-tight">탑승자가 매칭되었습니다!</h2>
+        <p className="text-on-surface-variant">경로 상에 있는 교직원과 함께 출근합니다.</p>
+      </div>
+
+      <div className="bg-surface-container-lowest rounded-2xl p-6 shadow-lg border border-primary-container/10">
+        <div className="flex items-center gap-4 mb-6">
+          <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-primary-container/20">
+            <img src="https://picsum.photos/seed/passenger/150/150" alt="Passenger" className="w-full h-full object-cover" />
+          </div>
+          <div>
+            <h3 className="text-xl font-bold text-primary-container">이*민 주무관</h3>
+            <p className="text-sm text-on-surface-variant">학생처 장학팀</p>
+          </div>
+          <div className="ml-auto">
+            <button className="w-10 h-10 rounded-full bg-blue-50 text-primary-container flex items-center justify-center">
+              <Phone className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+
+        <div className="space-y-4 bg-surface-container-low p-4 rounded-xl">
+          <div className="flex items-start gap-3">
+            <MapPin className="w-5 h-5 text-primary-container mt-0.5" />
+            <div>
+              <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">픽업 장소</p>
+              <p className="font-semibold text-on-surface">유성온천역 3번 출구 앞</p>
+            </div>
+          </div>
+          <div className="flex items-start gap-3">
+            <Clock className="w-5 h-5 text-primary-container mt-0.5" />
+            <div>
+              <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">예상 픽업 시간</p>
+              <p className="font-semibold text-on-surface">08:35 AM (약 5분 후)</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <button 
+        onClick={() => setState('DRIVER_EN_ROUTE')}
+        className="w-full bg-primary-container text-white py-5 rounded-xl font-bold text-lg shadow-lg flex items-center justify-center gap-3 active:scale-95 transition-all"
+      >
+        <Navigation className="w-6 h-6" />
+        픽업 장소로 이동하기
+      </button>
+    </motion.div>
+  );
+
+  const DriverEnRouteScreen = () => (
+    <motion.div 
+      initial={{ opacity: 0 }} 
+      animate={{ opacity: 1 }} 
+      className="flex flex-col min-h-[calc(100vh-160px)]"
+    >
+      <div className="flex-1 relative">
+        <div className="absolute inset-0 bg-slate-200">
+          <MapComponent 
+            polylines={[MOCK_ROUTES[0].path]} 
+            markers={[{ lat: 36.355, lng: 127.345 }]} // Mock pickup point
+            center={{ lat: 36.355, lng: 127.345 }}
+            zoom={15}
+          />
+        </div>
+        
+        <div className="relative z-10 p-6 space-y-6">
+          <div className="bg-white/90 backdrop-blur-md p-5 rounded-xl shadow-lg flex items-center gap-4">
+            <div className="bg-blue-100 p-3 rounded-full">
+              <Navigation className="w-6 h-6 text-blue-600" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-bold text-on-surface-variant">픽업 장소로 이동 중</p>
+              <p className="text-lg font-extrabold text-primary-container">유성온천역 3번 출구</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="p-6 bg-white/80 backdrop-blur-xl border-t border-slate-100">
+        <button 
+          onClick={() => {
+            alert('탑승자가 탑승했습니다. 목적지로 출발합니다!');
+            setState('HOME');
+          }}
+          className="w-full h-24 bg-[#2E7D32] text-white rounded-3xl shadow-2xl flex flex-col items-center justify-center gap-2 active:scale-95 transition-all"
+        >
+          <MapPin className="w-8 h-8" />
           <div className="text-center">
-            <h3 className="text-2xl font-extrabold tracking-tight">📍 픽업 장소 도착</h3>
-            <p className="text-sm font-medium opacity-80 mt-1">(비상등 점등 및 정차)</p>
+            <h3 className="text-xl font-extrabold tracking-tight">📍 픽업 장소 도착</h3>
+            <p className="text-xs font-medium opacity-80 mt-1">탑승자 확인 후 출발하세요</p>
           </div>
         </button>
       </div>
@@ -479,11 +579,12 @@ export default function App() {
     >
       <div className="flex-1 relative">
         <div className="absolute inset-0 bg-slate-200">
-          <img src="https://picsum.photos/seed/map-matched/800/1200" className="w-full h-full object-cover opacity-60" alt="Map" />
-          {/* Intersection Highlight Emulation */}
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="w-48 h-48 bg-blue-400/20 border-2 border-blue-400/40 rounded-full map-pulse"></div>
-          </div>
+          <MapComponent 
+            polylines={[MOCK_ROUTES[0].path]} 
+            circles={[{ center: { lat: 36.355, lng: 127.345 }, radius: 500 }]}
+            center={{ lat: 36.355, lng: 127.345 }}
+            zoom={14}
+          />
         </div>
 
         <div className="relative z-10 p-6 space-y-6">
@@ -520,7 +621,10 @@ export default function App() {
 
       <div className="p-6 bg-white/80 backdrop-blur-xl border-t border-slate-100">
         <button 
-          onClick={() => setState('HOME')}
+          onClick={() => {
+            alert('탑승 신청이 완료되었습니다. 운전자가 수락하면 알림이 전송됩니다.');
+            setState('HOME');
+          }}
           className="w-full bg-primary-container text-white py-5 rounded-2xl font-bold text-lg shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all"
         >
           이 차에 탑승 신청
@@ -530,37 +634,71 @@ export default function App() {
     </motion.div>
   );
 
-  const DriverActiveScreen = () => (
+  const ProfileScreen = () => (
     <motion.div 
-      initial={{ opacity: 0 }} 
-      animate={{ opacity: 1 }} 
-      className="flex flex-col min-h-screen bg-primary-container text-white"
+      initial={{ opacity: 0, y: 20 }} 
+      animate={{ opacity: 1, y: 0 }} 
+      className="px-5 pt-6 space-y-6 pb-32"
     >
-      <div className="p-12 flex flex-col items-center justify-center text-center flex-1">
-        <div className="w-24 h-24 bg-white/10 rounded-full flex items-center justify-center mb-8">
-          <CheckCircle className="w-16 h-16" />
+      <h2 className="text-3xl font-extrabold text-primary-container tracking-tight mb-6">내 정보</h2>
+      
+      <div className="bg-surface-container-lowest rounded-2xl p-6 shadow-sm flex items-center gap-5">
+        <div className="w-20 h-20 rounded-full overflow-hidden border-4 border-primary-container/10">
+          <img src="https://picsum.photos/seed/faculty/100/100" alt="Profile" className="w-full h-full object-cover" />
         </div>
-        <h2 className="text-4xl font-extrabold tracking-tight mb-4">운행이 완료되었습니다!</h2>
-        <p className="text-xl opacity-80 mb-12">오늘도 2부제를 함께 극복했습니다.</p>
-        
-        <div className="grid grid-cols-2 gap-4 w-full max-w-md">
-          <div className="bg-white/10 p-6 rounded-2xl text-center">
-            <ThumbsUp className="w-8 h-8 mx-auto mb-2" />
-            <p className="text-sm font-bold">좋아요</p>
-          </div>
-          <div className="bg-white/10 p-6 rounded-2xl text-center">
-            <ThumbsDown className="w-8 h-8 mx-auto mb-2" />
-            <p className="text-sm font-bold">아쉬워요</p>
+        <div>
+          <h3 className="text-2xl font-bold text-primary-container">{user.name}</h3>
+          <p className="text-on-surface-variant font-medium">{user.department}</p>
+          <div className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 text-primary-container rounded-full text-[10px] font-bold mt-2">
+            <BadgeCheck className="w-3 h-3 fill-current" />
+            SSO 인증 완료
           </div>
         </div>
       </div>
-      
-      <div className="p-8">
-        <button 
-          onClick={() => setState('HOME')}
-          className="w-full bg-white text-primary-container py-5 rounded-2xl font-bold text-lg shadow-xl"
-        >
-          홈으로 돌아가기
+
+      <div className="space-y-4">
+        <h4 className="text-sm font-bold text-on-surface-variant uppercase tracking-widest ml-1">차량 정보</h4>
+        <div className="bg-surface-container-lowest rounded-xl p-5 shadow-sm flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="bg-primary-container/10 p-3 rounded-full">
+              <Car className="w-6 h-6 text-primary-container" />
+            </div>
+            <div>
+              <p className="font-bold text-on-surface">12가 3456</p>
+              <p className="text-xs text-on-surface-variant">그랜저 하이브리드 (화이트)</p>
+            </div>
+          </div>
+          <button className="text-primary-container text-sm font-bold">수정</button>
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        <h4 className="text-sm font-bold text-on-surface-variant uppercase tracking-widest ml-1">이용 기록</h4>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="bg-surface-container-lowest rounded-xl p-5 shadow-sm text-center">
+            <p className="text-3xl font-black text-primary-container mb-1">12</p>
+            <p className="text-xs font-bold text-on-surface-variant">운행 횟수</p>
+          </div>
+          <div className="bg-surface-container-lowest rounded-xl p-5 shadow-sm text-center">
+            <p className="text-3xl font-black text-primary-container mb-1">5</p>
+            <p className="text-xs font-bold text-on-surface-variant">탑승 횟수</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="space-y-2 pt-4">
+        <button className="w-full bg-surface-container-lowest p-4 rounded-xl flex items-center justify-between text-on-surface font-bold shadow-sm">
+          <div className="flex items-center gap-3">
+            <Settings className="w-5 h-5 text-on-surface-variant" />
+            설정
+          </div>
+          <ChevronRight className="w-5 h-5 text-outline" />
+        </button>
+        <button className="w-full bg-surface-container-lowest p-4 rounded-xl flex items-center justify-between text-red-500 font-bold shadow-sm">
+          <div className="flex items-center gap-3">
+            <LogOut className="w-5 h-5" />
+            로그아웃
+          </div>
         </button>
       </div>
     </motion.div>
@@ -568,21 +706,23 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-surface flex flex-col font-sans">
-      {state !== 'DRIVER_ACTIVE' && <TopAppBar title={state === 'HOME' ? "CNU 교직원 카풀" : "카풀 서비스"} />}
+      <TopAppBar title={state === 'HOME' ? "CNU 교직원 카풀" : "카풀 서비스"} />
       
       <main className="flex-1 overflow-y-auto">
         <AnimatePresence mode="wait">
           {state === 'HOME' && <HomeScreen key="home" />}
           {state === 'DRIVER_SETUP' && <DriverSetupScreen key="driver-setup" />}
-          {state === 'DRIVER_CONFIRM' && <DriverConfirmScreen key="driver-confirm" />}
+          {state === 'DRIVER_ACTIVE' && <DriverActiveScreen key="driver-active" />}
+          {state === 'DRIVER_MATCHED' && <DriverMatchedScreen key="driver-matched" />}
+          {state === 'DRIVER_EN_ROUTE' && <DriverEnRouteScreen key="driver-en-route" />}
           {state === 'PASSENGER_SETUP' && <PassengerSetupScreen key="passenger-setup" />}
           {state === 'PASSENGER_SEARCH' && <PassengerSearchScreen key="passenger-search" />}
           {state === 'PASSENGER_MATCHED' && <PassengerMatchedScreen key="passenger-matched" />}
-          {state === 'DRIVER_ACTIVE' && <DriverActiveScreen key="driver-active" />}
+          {state === 'PROFILE' && <ProfileScreen key="profile" />}
         </AnimatePresence>
       </main>
 
-      {state !== 'DRIVER_ACTIVE' && <BottomNav />}
+      <BottomNav />
     </div>
   );
 }
