@@ -1,5 +1,5 @@
-import React from 'react';
-import { GoogleMap, useJsApiLoader, Marker, Polyline, Circle } from '@react-google-maps/api';
+import React, { useState, useEffect } from 'react';
+import { GoogleMap, useJsApiLoader, Marker, Polyline, Circle, DirectionsRenderer } from '@react-google-maps/api';
 import { Coordinate } from '../types';
 
 const containerStyle = {
@@ -16,8 +16,11 @@ interface MapComponentProps {
   center?: Coordinate;
   markers?: Coordinate[];
   polylines?: Coordinate[][];
-  circles?: { center: Coordinate; radius: number }[];
+  circles?: { center: Coordinate; radius: number; color?: string }[];
   zoom?: number;
+  origin?: string;
+  destination?: string;
+  onRouteCalculated?: (path: Coordinate[]) => void;
 }
 
 export const MapComponent: React.FC<MapComponentProps> = ({ 
@@ -25,12 +28,41 @@ export const MapComponent: React.FC<MapComponentProps> = ({
   markers = [], 
   polylines = [], 
   circles = [],
-  zoom = 14
+  zoom = 14,
+  origin,
+  destination,
+  onRouteCalculated
 }) => {
   const { isLoaded } = useJsApiLoader({
     id: 'google-map-script',
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || ''
   });
+
+  const [directions, setDirections] = useState<google.maps.DirectionsResult | null>(null);
+
+  useEffect(() => {
+    if (!isLoaded || !origin || !destination) return;
+
+    const directionsService = new window.google.maps.DirectionsService();
+    directionsService.route(
+      {
+        origin,
+        destination,
+        travelMode: window.google.maps.TravelMode.DRIVING,
+      },
+      (result, status) => {
+        if (status === window.google.maps.DirectionsStatus.OK && result) {
+          setDirections(result);
+          if (onRouteCalculated) {
+            const path = result.routes[0].overview_path.map(p => ({ lat: p.lat(), lng: p.lng() }));
+            onRouteCalculated(path);
+          }
+        } else {
+          console.error(`Error fetching directions: ${status}`);
+        }
+      }
+    );
+  }, [isLoaded, origin, destination]);
 
   if (!import.meta.env.VITE_GOOGLE_MAPS_API_KEY) {
     return (
@@ -51,6 +83,16 @@ export const MapComponent: React.FC<MapComponentProps> = ({
         zoomControl: true,
       }}
     >
+      {directions && (
+        <DirectionsRenderer 
+          directions={directions} 
+          options={{
+            polylineOptions: { strokeColor: '#003E7A', strokeOpacity: 0.8, strokeWeight: 5 },
+            suppressMarkers: false
+          }}
+        />
+      )}
+
       {markers.map((marker, index) => (
         <Marker key={`marker-${index}`} position={marker} />
       ))}
@@ -69,9 +111,9 @@ export const MapComponent: React.FC<MapComponentProps> = ({
           center={circle.center}
           radius={circle.radius}
           options={{
-            fillColor: '#3b82f6',
+            fillColor: circle.color || '#3b82f6',
             fillOpacity: 0.2,
-            strokeColor: '#3b82f6',
+            strokeColor: circle.color || '#3b82f6',
             strokeOpacity: 0.8,
             strokeWeight: 2,
           }}

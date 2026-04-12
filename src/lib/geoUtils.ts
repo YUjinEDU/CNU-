@@ -1,4 +1,4 @@
-import { Coordinate } from './types';
+import { Coordinate } from '../types';
 
 /**
  * Haversine formula to calculate distance between two points in km
