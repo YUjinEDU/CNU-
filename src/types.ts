@@ -3,27 +3,49 @@ export interface Coordinate {
   lng: number;
 }
 
-export interface Route {
-  id: string;
-  driverName: string;
-  vehicleInfo: string;
-  plateNumber: string;
-  path: Coordinate[];
-  departureTime: string;
-  sourceName: string;
-  destName: string;
+export interface SavedAddress {
+  name: string;
+  lat: number;
+  lng: number;
 }
 
 export interface User {
-  id: string;
+  uid: string;
   name: string;
-  role: 'driver' | 'passenger';
   department: string;
+  role: 'driver' | 'passenger' | 'both';
   isVerified: boolean;
-  savedAddresses?: string[];
+  savedAddresses?: SavedAddress[];
+  createdAt: any;
+}
+
+export interface Route {
+  id?: string;
+  driverId: string;
+  driverName: string;
+  vehicleInfo?: string;
+  plateNumber?: string;
+  departureTime?: string;
+  sourceName: string;
+  destName: string;
+  path: string; // JSON stringified Coordinate[]
+  status: 'active' | 'matched' | 'completed' | 'cancelled';
+  createdAt: any;
+}
+
+export interface Ride {
+  id?: string;
+  routeId: string;
+  passengerId: string;
+  passengerName: string;
+  pickupLat: number;
+  pickupLng: number;
+  status: 'pending' | 'accepted' | 'en_route' | 'in_transit' | 'completed' | 'cancelled';
+  createdAt: any;
 }
 
 export type AppState = 
+  | 'LOGIN'
   | 'SIGNUP'
   | 'HOME' 
   | 'DRIVER_SETUP' 

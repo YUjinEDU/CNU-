@@ -42,58 +42,22 @@ import {
   LogOut
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { AppState, User, Route, Coordinate } from './types';
+import { AppState, User, Route, Coordinate, SavedAddress } from './types';
 import { isRouteIntersectingCircle, findClosestPointOnRoute } from './lib/geoUtils';
 import { MapComponent } from './components/MapComponent';
-
-// Mock Data
-const MOCK_USER: User = {
-  id: 'u1',
-  name: '김철수 교수',
-  role: 'driver',
-  department: '스마트데이터 연구실',
-  isVerified: true,
-  savedAddresses: ['도안동 트리풀시티', '공과대학 1호관', '유성온천역 3번 출구']
-};
-
-const MOCK_ROUTES: Route[] = [
-  {
-    id: 'r1',
-    driverName: '김*진 교수',
-    vehicleInfo: '제네시스 G80',
-    plateNumber: '12가 34**',
-    departureTime: '08:25',
-    sourceName: '도안동',
-    destName: '공과대학 권역',
-    path: [
-      { lat: 36.33, lng: 127.33 },
-      { lat: 36.34, lng: 127.34 },
-      { lat: 36.35, lng: 127.35 },
-      { lat: 36.36, lng: 127.36 },
-    ]
-  },
-  {
-    id: 'r2',
-    driverName: '이*혁 주무관',
-    vehicleInfo: '싼타페 화이트',
-    plateNumber: '56고 92**',
-    departureTime: '08:35',
-    sourceName: '유성온천역',
-    destName: '자연과학대학 권역',
-    path: [
-      { lat: 36.35, lng: 127.34 },
-      { lat: 36.355, lng: 127.345 },
-      { lat: 36.36, lng: 127.35 },
-    ]
-  }
-];
+import { AddressAutocomplete } from './components/AddressAutocomplete';
+import { auth, db } from './firebase';
+import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut } from 'firebase/auth';
+import { doc, getDoc, setDoc, collection, onSnapshot, query, where, serverTimestamp, addDoc } from 'firebase/firestore';
 
 export default function App() {
-  const [state, setState] = useState<AppState>('SIGNUP');
+  const [state, setState] = useState<AppState>('LOGIN');
   const [user, setUser] = useState<User | null>(null);
+  const [isAuthReady, setIsAuthReady] = useState(false);
   const [walkingRadius, setWalkingRadius] = useState(10); // minutes
   const [selectedRoute, setSelectedRoute] = useState<Route | null>(null);
   const [pickupPoint, setPickupPoint] = useState<Coordinate | null>(null);
+  const [availableRoutes, setAvailableRoutes] = useState<Route[]>([]);
   
   // Driver states
   const [driverSource, setDriverSource] = useState('');
@@ -101,9 +65,40 @@ export default function App() {
   const [driverRoute, setDriverRoute] = useState<Coordinate[]>([]);
 
   useEffect(() => {
-    // For demo purposes, we can skip signup if user is already "logged in"
-    // But here we want to show the signup flow
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+        if (userDoc.exists()) {
+          setUser(userDoc.data() as User);
+          setState('HOME');
+        } else {
+          setState('SIGNUP');
+        }
+      } else {
+        setUser(null);
+        setState('LOGIN');
+      }
+      setIsAuthReady(true);
+    });
+    return () => unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (!isAuthReady || !user) return;
+    const q = query(collection(db, 'routes'), where('status', '==', 'active'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const routesData = snapshot.docs.map(doc => ({
+        ...doc.data(),
+        id: doc.id
+      })) as Route[];
+      setAvailableRoutes(routesData);
+    });
+    return () => unsubscribe();
+  }, [isAuthReady, user]);
+
+  if (!isAuthReady) {
+    return <div className="min-h-screen flex items-center justify-center bg-slate-50"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-container"></div></div>;
+  }
 
   // Layout Components
   const TopAppBar = ({ title = "CNU 교직원 카풀" }) => (
@@ -147,32 +142,77 @@ export default function App() {
   );
 
   // Screen Components
-  const SignupScreen = () => {
-    const [name, setName] = useState('');
-    const [dept, setDept] = useState('');
-    const [addresses, setAddresses] = useState<string[]>(['']);
+  const LoginScreen = () => {
+    const handleLogin = async () => {
+      try {
+        const provider = new GoogleAuthProvider();
+        await signInWithPopup(auth, provider);
+      } catch (error) {
+        console.error("Login failed", error);
+      }
+    };
 
-    const handleAddAddress = () => setAddresses([...addresses, '']);
-    const handleAddressChange = (idx: number, val: string) => {
+    return (
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }} 
+        animate={{ opacity: 1, y: 0 }} 
+        className="min-h-screen flex flex-col items-center justify-center px-6 py-12 space-y-8 bg-slate-50"
+      >
+        <div className="text-center space-y-4">
+          <School className="w-20 h-20 text-primary-container mx-auto" />
+          <h2 className="text-4xl font-black text-primary-container tracking-tight">CNU 카풀</h2>
+          <p className="text-on-surface-variant text-lg">충남대학교 교직원 전용 카풀 서비스</p>
+        </div>
+
+        <button 
+          onClick={handleLogin}
+          className="w-full bg-white text-on-surface py-4 rounded-xl font-bold text-lg shadow-md border border-slate-200 flex items-center justify-center gap-3 active:scale-95 transition-all"
+        >
+          <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-6 h-6" />
+          Google 계정으로 로그인
+        </button>
+      </motion.div>
+    );
+  };
+
+  const SignupScreen = () => {
+    const [name, setName] = useState(auth.currentUser?.displayName || '');
+    const [dept, setDept] = useState('');
+    const [role, setRole] = useState<'driver' | 'passenger' | 'both'>('passenger');
+    const [addresses, setAddresses] = useState<SavedAddress[]>([{ name: '', lat: 0, lng: 0 }]);
+
+    const handleAddAddress = () => setAddresses([...addresses, { name: '', lat: 0, lng: 0 }]);
+    const handleAddressChange = (idx: number, place: { name: string; lat: number; lng: number }) => {
       const newAddrs = [...addresses];
-      newAddrs[idx] = val;
+      newAddrs[idx] = place;
       setAddresses(newAddrs);
     };
 
-    const handleSignup = () => {
-      if (!name || !dept || addresses.some(a => !a)) {
+    const handleSignup = async () => {
+      if (!name || !dept || addresses.some(a => !a.name)) {
         alert('모든 필드를 입력해주세요.');
         return;
       }
-      setUser({
-        id: 'u' + Math.random().toString(36).substr(2, 9),
+      if (!auth.currentUser) return;
+
+      const newUser: User = {
+        uid: auth.currentUser.uid,
         name,
         department: dept,
-        role: 'passenger',
+        role,
         isVerified: true,
-        savedAddresses: addresses
-      });
-      setState('HOME');
+        savedAddresses: addresses,
+        createdAt: serverTimestamp()
+      };
+
+      try {
+        await setDoc(doc(db, 'users', auth.currentUser.uid), newUser);
+        setUser(newUser);
+        setState('HOME');
+      } catch (error) {
+        console.error("Error saving user:", error);
+        alert("회원가입 중 오류가 발생했습니다.");
+      }
     };
 
     return (
@@ -210,6 +250,24 @@ export default function App() {
             />
           </div>
 
+          <div className="space-y-2">
+            <label className="text-xs font-bold text-on-surface-variant uppercase tracking-widest ml-1">주 이용 목적</label>
+            <div className="grid grid-cols-3 gap-2">
+              <button 
+                onClick={() => setRole('passenger')}
+                className={`py-3 rounded-xl font-bold text-sm transition-colors ${role === 'passenger' ? 'bg-primary-container text-white' : 'bg-surface-container-lowest text-on-surface-variant'}`}
+              >탑승</button>
+              <button 
+                onClick={() => setRole('driver')}
+                className={`py-3 rounded-xl font-bold text-sm transition-colors ${role === 'driver' ? 'bg-primary-container text-white' : 'bg-surface-container-lowest text-on-surface-variant'}`}
+              >운전</button>
+              <button 
+                onClick={() => setRole('both')}
+                className={`py-3 rounded-xl font-bold text-sm transition-colors ${role === 'both' ? 'bg-primary-container text-white' : 'bg-surface-container-lowest text-on-surface-variant'}`}
+              >둘 다</button>
+            </div>
+          </div>
+
           <div className="space-y-4">
             <div className="flex justify-between items-center">
               <label className="text-xs font-bold text-on-surface-variant uppercase tracking-widest ml-1">자주 가는 주소</label>
@@ -221,16 +279,16 @@ export default function App() {
               </button>
             </div>
             {addresses.map((addr, idx) => (
-              <div key={idx} className="relative">
-                <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-primary-container" />
-                <input 
-                  type="text"
-                  value={addr}
-                  onChange={(e) => handleAddressChange(idx, e.target.value)}
-                  className="w-full pl-12 pr-4 py-4 bg-surface-container-lowest border-none rounded-xl text-on-surface font-semibold shadow-sm focus:ring-2 focus:ring-primary-container"
-                  placeholder="예: 도안동 트리풀시티"
-                />
-              </div>
+              <AddressAutocomplete
+                key={idx}
+                value={addr.name}
+                onChange={(val) => {
+                  const newAddrs = [...addresses];
+                  newAddrs[idx].name = val;
+                  setAddresses(newAddrs);
+                }}
+                onPlaceSelected={(place) => handleAddressChange(idx, place)}
+              />
             ))}
           </div>
         </div>
@@ -318,8 +376,8 @@ export default function App() {
 
   const DriverSetupScreen = () => {
     useEffect(() => {
-      if (!driverSource && user?.savedAddresses?.[0]) setDriverSource(user.savedAddresses[0]);
-      if (!driverDest && user?.savedAddresses?.[1]) setDriverDest(user.savedAddresses[1]);
+      if (!driverSource && user?.savedAddresses?.[0]) setDriverSource(user.savedAddresses[0].name);
+      if (!driverDest && user?.savedAddresses?.[1]) setDriverDest(user.savedAddresses[1].name);
     }, [user]);
 
     const mockPassengers = useMemo(() => {
@@ -329,16 +387,43 @@ export default function App() {
         { center: { lat: 36.350, lng: 127.350 }, radius: 300 }, // 3 min walk
       ];
 
-      const routeToUse = driverRoute.length > 0 ? driverRoute : MOCK_ROUTES[0].path;
+      const routeToUse = driverRoute.length > 0 ? driverRoute : [];
 
       return passengers.map(p => {
-        const isIntersecting = isRouteIntersectingCircle(routeToUse, p.center, p.radius / 1000);
+        const isIntersecting = routeToUse.length > 0 && isRouteIntersectingCircle(routeToUse, p.center, p.radius / 1000);
         return {
           ...p,
           color: isIntersecting ? '#22c55e' : '#94a3b8' // Green if overlapping, slate if not
         };
       });
     }, [driverRoute]);
+
+    const handleStartRoute = async () => {
+      if (!driverSource || !driverDest || driverRoute.length === 0) {
+        alert('출발지, 도착지를 선택하고 경로가 계산될 때까지 기다려주세요.');
+        return;
+      }
+      if (!user) return;
+
+      const newRoute: Route = {
+        driverId: user.uid,
+        driverName: user.name,
+        sourceName: driverSource,
+        destName: driverDest,
+        path: JSON.stringify(driverRoute),
+        status: 'active',
+        createdAt: serverTimestamp(),
+        departureTime: '08:30 AM' // Mocked for now
+      };
+
+      try {
+        await addDoc(collection(db, 'routes'), newRoute);
+        setState('DRIVER_ACTIVE');
+      } catch (error) {
+        console.error("Error creating route:", error);
+        alert("경로 등록 중 오류가 발생했습니다.");
+      }
+    };
 
     return (
       <motion.div 
@@ -382,7 +467,7 @@ export default function App() {
                 >
                   <option value="" disabled>출발지 선택</option>
                   {user?.savedAddresses?.map((addr, idx) => (
-                    <option key={idx} value={addr}>{addr}</option>
+                    <option key={idx} value={addr.name}>{addr.name}</option>
                   ))}
                 </select>
                 <ChevronDown className="absolute right-4 w-5 h-5 text-outline pointer-events-none" />
@@ -400,7 +485,7 @@ export default function App() {
                 >
                   <option value="" disabled>도착지 선택</option>
                   {user?.savedAddresses?.map((addr, idx) => (
-                    <option key={idx} value={addr}>{addr}</option>
+                    <option key={idx} value={addr.name}>{addr.name}</option>
                   ))}
                 </select>
                 <ChevronDown className="absolute right-4 w-5 h-5 text-outline pointer-events-none" />
@@ -428,7 +513,7 @@ export default function App() {
       </div>
 
       <button 
-        onClick={() => setState('DRIVER_ACTIVE')}
+        onClick={handleStartRoute}
         className="w-full bg-[#2E7D32] text-white py-5 rounded-xl font-bold text-lg shadow-lg flex items-center justify-center gap-3 active:scale-95 transition-all"
       >
         <Car className="w-6 h-6 fill-current" />
@@ -446,7 +531,7 @@ export default function App() {
     >
       <div className="flex-1 relative">
         <div className="absolute inset-0 bg-slate-200">
-          <MapComponent polylines={[driverRoute.length > 0 ? driverRoute : MOCK_ROUTES[0].path]} />
+          <MapComponent polylines={[driverRoute.length > 0 ? driverRoute : []]} />
         </div>
         
         <div className="relative z-10 p-6 space-y-6">
@@ -507,7 +592,7 @@ export default function App() {
   const DriverMatchedScreen = () => {
     const passengerSearchCenter = { lat: 36.355, lng: 127.345 };
     const calculatedPickup = useMemo(() => {
-      const routeToUse = driverRoute.length > 0 ? driverRoute : MOCK_ROUTES[0].path;
+      const routeToUse = driverRoute.length > 0 ? driverRoute : [];
       return findClosestPointOnRoute(routeToUse, passengerSearchCenter);
     }, [driverRoute]);
 
@@ -573,7 +658,7 @@ export default function App() {
   const DriverEnRouteScreen = () => {
     const passengerSearchCenter = { lat: 36.355, lng: 127.345 };
     const calculatedPickup = useMemo(() => {
-      const routeToUse = driverRoute.length > 0 ? driverRoute : MOCK_ROUTES[0].path;
+      const routeToUse = driverRoute.length > 0 ? driverRoute : [];
       return findClosestPointOnRoute(routeToUse, passengerSearchCenter);
     }, [driverRoute]);
 
@@ -586,7 +671,7 @@ export default function App() {
         <div className="flex-1 relative">
           <div className="absolute inset-0 bg-slate-200">
             <MapComponent 
-              polylines={[driverRoute.length > 0 ? driverRoute : MOCK_ROUTES[0].path]} 
+              polylines={[driverRoute.length > 0 ? driverRoute : []]} 
               markers={[calculatedPickup]}
               center={calculatedPickup}
               zoom={15}
@@ -671,7 +756,7 @@ export default function App() {
       <div className="flex-1 relative">
         <div className="absolute inset-0 bg-slate-200">
           <MapComponent 
-            polylines={[driverRoute.length > 0 ? driverRoute : MOCK_ROUTES[0].path]} 
+            polylines={[driverRoute.length > 0 ? driverRoute : []]} 
             markers={[{ lat: 36.36, lng: 127.36 }]} // Mock destination
             center={{ lat: 36.355, lng: 127.35 }}
             zoom={14}
@@ -702,74 +787,93 @@ export default function App() {
     </motion.div>
   );
 
-  const PassengerSetupScreen = () => (
-    <motion.div 
-      initial={{ opacity: 0, x: -20 }} 
-      animate={{ opacity: 1, x: 0 }} 
-      className="px-6 py-8 space-y-8 pb-32"
-    >
-      <h2 className="text-3xl font-extrabold text-primary-container tracking-tight">카풀 검색하기</h2>
-      
-      <div className="space-y-6">
-        <div className="bg-surface-container-lowest p-6 rounded-xl shadow-sm">
-          <label className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-3 block">희망 픽업 지역 검색</label>
-          <div className="relative">
-            <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-primary-container" />
-            <input 
-              className="w-full pl-12 pr-4 py-4 bg-surface-container-low border-none rounded-lg text-on-surface font-semibold text-lg focus:ring-2 focus:ring-primary-container" 
-              placeholder="주변 지역 검색" 
-              defaultValue={user?.savedAddresses?.[0] || "유성온천역 3번 출구"}
-            />
-            <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-outline" />
-          </div>
-        </div>
+  const PassengerSetupScreen = () => {
+    const [pickupLocation, setPickupLocation] = useState(user?.savedAddresses?.[0]?.name || '');
+    const [pickupCoords, setPickupCoords] = useState<Coordinate | null>(user?.savedAddresses?.[0] ? { lat: user.savedAddresses[0].lat, lng: user.savedAddresses[0].lng } : null);
+    const [destinationZone, setDestinationZone] = useState('');
 
-        <div className="bg-surface-container-lowest p-6 rounded-xl shadow-sm">
-          <label className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-4 block">목적지 권역 선택</label>
-          <div className="grid grid-cols-2 gap-3">
-            {[
-              { id: 'eng', name: '공과대학 권역', icon: Building, desc: '1, 2, 3호관 주변' },
-              { id: 'sci', name: '자연과학대학 권역', icon: FlaskConical, desc: '기초과학관 주변' },
-              { id: 'hq', name: '대학본부 권역', icon: Building2, desc: '중앙도서관 방면' },
-              { id: 'agri', name: '농생대 권역', icon: Tractor, desc: '실험농장 주변' },
-            ].map(zone => (
-              <button key={zone.id} className="flex flex-col items-start p-4 rounded-lg bg-surface-container-low text-on-surface-variant hover:bg-primary-container hover:text-white transition-all">
-                <zone.icon className="w-5 h-5 mb-2" />
-                <span className="font-bold text-sm">{zone.name}</span>
-                <span className="text-[10px] opacity-70">{zone.desc}</span>
-              </button>
-            ))}
-          </div>
-        </div>
+    const handleSearch = () => {
+      if (!pickupLocation || !destinationZone) {
+        alert('픽업 지역과 목적지 권역을 선택해주세요.');
+        return;
+      }
+      setPickupPoint(pickupCoords);
+      setState('PASSENGER_SEARCH');
+    };
 
-        <div className="bg-surface-container-lowest p-8 rounded-xl shadow-sm text-center space-y-6">
-          <h3 className="text-xl font-extrabold text-primary-container">🏃‍♂️ 나는 최대 몇 분까지 걸어갈 수 있나요?</h3>
-          <div className="space-y-4">
-            <div className="flex justify-between px-2">
-              <span className={`text-xs font-bold px-3 py-1 rounded-full ${walkingRadius === 5 ? 'bg-primary-container text-white' : 'bg-slate-100 text-slate-400'}`}>5분</span>
-              <span className="text-2xl font-black text-primary-container tracking-tighter">{walkingRadius}분</span>
-              <span className={`text-xs font-bold px-3 py-1 rounded-full ${walkingRadius === 15 ? 'bg-primary-container text-white' : 'bg-slate-100 text-slate-400'}`}>15분</span>
-            </div>
-            <input 
-              type="range" 
-              min="5" max="15" step="1" 
-              value={walkingRadius} 
-              onChange={(e) => setWalkingRadius(parseInt(e.target.value))}
-              className="w-full h-2 bg-slate-200 rounded-full appearance-none accent-primary-container" 
-            />
-          </div>
-        </div>
-      </div>
-
-      <button 
-        onClick={() => setState('PASSENGER_SEARCH')}
-        className="w-full py-5 bg-primary-container text-white rounded-xl text-lg font-bold shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all"
+    return (
+      <motion.div 
+        initial={{ opacity: 0, x: -20 }} 
+        animate={{ opacity: 1, x: 0 }} 
+        className="px-6 py-8 space-y-8 pb-32"
       >
-        <Search className="w-6 h-6" />
-        내 주변 동승 차량 찾기
-      </button>
-    </motion.div>
-  );
+        <h2 className="text-3xl font-extrabold text-primary-container tracking-tight">카풀 검색하기</h2>
+        
+        <div className="space-y-6">
+          <div className="bg-surface-container-lowest p-6 rounded-xl shadow-sm">
+            <label className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-3 block">희망 픽업 지역 검색</label>
+            <AddressAutocomplete
+              value={pickupLocation}
+              onChange={setPickupLocation}
+              onPlaceSelected={(place) => {
+                setPickupLocation(place.name);
+                setPickupCoords({ lat: place.lat, lng: place.lng });
+              }}
+              placeholder="주변 지역 검색"
+            />
+          </div>
+
+          <div className="bg-surface-container-lowest p-6 rounded-xl shadow-sm">
+            <label className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-4 block">목적지 권역 선택</label>
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                { id: 'eng', name: '공과대학 권역', icon: Building, desc: '1, 2, 3호관 주변' },
+                { id: 'sci', name: '자연과학대학 권역', icon: FlaskConical, desc: '기초과학관 주변' },
+                { id: 'hq', name: '대학본부 권역', icon: Building2, desc: '중앙도서관 방면' },
+                { id: 'agri', name: '농생대 권역', icon: Tractor, desc: '실험농장 주변' },
+              ].map(zone => (
+                <button 
+                  key={zone.id} 
+                  onClick={() => setDestinationZone(zone.name)}
+                  className={`flex flex-col items-start p-4 rounded-lg transition-all ${destinationZone === zone.name ? 'bg-primary-container text-white' : 'bg-surface-container-low text-on-surface-variant hover:bg-primary-container/10'}`}
+                >
+                  <zone.icon className="w-5 h-5 mb-2" />
+                  <span className="font-bold text-sm">{zone.name}</span>
+                  <span className="text-[10px] opacity-70">{zone.desc}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="bg-surface-container-lowest p-8 rounded-xl shadow-sm text-center space-y-6">
+            <h3 className="text-xl font-extrabold text-primary-container">🏃‍♂️ 나는 최대 몇 분까지 걸어갈 수 있나요?</h3>
+            <div className="space-y-4">
+              <div className="flex justify-between px-2">
+                <span className={`text-xs font-bold px-3 py-1 rounded-full ${walkingRadius === 5 ? 'bg-primary-container text-white' : 'bg-slate-100 text-slate-400'}`}>5분</span>
+                <span className="text-2xl font-black text-primary-container tracking-tighter">{walkingRadius}분</span>
+                <span className={`text-xs font-bold px-3 py-1 rounded-full ${walkingRadius === 15 ? 'bg-primary-container text-white' : 'bg-slate-100 text-slate-400'}`}>15분</span>
+              </div>
+              <input 
+                type="range" 
+                min="5" max="15" step="1" 
+                value={walkingRadius} 
+                onChange={(e) => setWalkingRadius(parseInt(e.target.value))}
+                className="w-full h-2 bg-slate-200 rounded-full appearance-none accent-primary-container" 
+              />
+            </div>
+          </div>
+        </div>
+
+        <button 
+          onClick={handleSearch}
+          className="w-full py-5 bg-primary-container text-white rounded-xl text-lg font-bold shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all"
+        >
+          <Search className="w-6 h-6" />
+          내 주변 동승 차량 찾기
+        </button>
+      </motion.div>
+    );
+  };
 
   const PassengerSearchScreen = () => (
     <motion.div 
@@ -783,63 +887,68 @@ export default function App() {
       </div>
 
       <div className="space-y-6">
-        {MOCK_ROUTES.map(route => (
-          <article 
-            key={route.id} 
-            onClick={() => {
-              setSelectedRoute(route);
-              setState('PASSENGER_MATCHED');
-            }}
-            className="bg-white rounded-xl shadow-md overflow-hidden border border-slate-100 cursor-pointer hover:scale-[1.01] transition-transform"
-          >
-            <div className="flex flex-col md:flex-row">
-              <div className="md:w-1/3 h-40 bg-slate-200 relative">
-                <img src={`https://picsum.photos/seed/${route.id}/300/200`} className="w-full h-full object-cover" alt="Car" />
-                <div className="absolute top-3 left-3 bg-primary-container text-white px-3 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1">
-                  <Hand className="w-3 h-3" />
-                  도보 3분
+        {availableRoutes.length === 0 ? (
+          <div className="text-center py-12 text-on-surface-variant">
+            현재 이용 가능한 차량이 없습니다.
+          </div>
+        ) : (
+          availableRoutes.map(route => (
+            <article 
+              key={route.id} 
+              onClick={() => {
+                setSelectedRoute(route);
+                setState('PASSENGER_MATCHED');
+              }}
+              className="bg-white rounded-xl shadow-md overflow-hidden border border-slate-100 cursor-pointer hover:scale-[1.01] transition-transform"
+            >
+              <div className="flex flex-col md:flex-row">
+                <div className="md:w-1/3 h-40 bg-slate-200 relative">
+                  <img src={`https://picsum.photos/seed/${route.id}/300/200`} className="w-full h-full object-cover" alt="Car" />
+                  <div className="absolute top-3 left-3 bg-primary-container text-white px-3 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1">
+                    <Hand className="w-3 h-3" />
+                    도보 3분
+                  </div>
                 </div>
-              </div>
-              <div className="md:w-2/3 p-5">
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-[10px] font-bold text-primary-container uppercase">공과대학 / 교수</span>
-                      <span className="bg-blue-50 text-primary-container text-[8px] px-1.5 py-0.5 rounded-full font-bold">✅ SSO</span>
+                <div className="md:w-2/3 p-5">
+                  <div className="flex justify-between items-start mb-4">
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-[10px] font-bold text-primary-container uppercase">공과대학 / 교수</span>
+                        <span className="bg-blue-50 text-primary-container text-[8px] px-1.5 py-0.5 rounded-full font-bold">✅ SSO</span>
+                      </div>
+                      <h3 className="text-lg font-bold text-on-surface">{route.driverName}</h3>
                     </div>
-                    <h3 className="text-lg font-bold text-on-surface">{route.driverName}</h3>
+                    <div className="text-right">
+                      <span className="text-xl font-black text-primary-container block">{route.departureTime}</span>
+                      <span className="text-[8px] font-medium text-on-surface-variant uppercase">Departure</span>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <span className="text-xl font-black text-primary-container block">{route.departureTime}</span>
-                    <span className="text-[8px] font-medium text-on-surface-variant uppercase">Departure</span>
+                  <div className="flex items-center justify-between pt-4 border-t border-slate-50">
+                    <div className="flex items-center gap-2">
+                      <MapPin className="w-4 h-4 text-on-surface-variant" />
+                      <span className="text-xs font-medium text-on-surface-variant">{route.sourceName}</span>
+                    </div>
+                    <button className="bg-primary-container text-white px-4 py-2 rounded-lg text-xs font-bold">탑승 요청</button>
                   </div>
-                </div>
-                <div className="flex items-center justify-between pt-4 border-t border-slate-50">
-                  <div className="flex items-center gap-2">
-                    <MapPin className="w-4 h-4 text-on-surface-variant" />
-                    <span className="text-xs font-medium text-on-surface-variant">{route.sourceName}</span>
-                  </div>
-                  <button className="bg-primary-container text-white px-4 py-2 rounded-lg text-xs font-bold">탑승 요청</button>
                 </div>
               </div>
-            </div>
-          </article>
-        ))}
+            </article>
+          ))
+        )}
       </div>
     </motion.div>
   );
 
   const PassengerMatchedScreen = () => {
-    // Passenger's search center (mocked as the first point of the route for demo, but should be user's search location)
-    const passengerSearchCenter = { lat: 36.355, lng: 127.345 };
+    const passengerSearchCenter = pickupPoint || { lat: 36.355, lng: 127.345 };
     const passengerRadiusMeters = walkingRadius * 80; // Roughly 80m per minute walking
     const [calculatedRoute, setCalculatedRoute] = useState<Coordinate[]>([]);
 
     // Calculate actual closest point on driver's route to passenger's center
     const calculatedPickup = useMemo(() => {
-      const routeToUse = calculatedRoute.length > 0 ? calculatedRoute : (selectedRoute?.path || MOCK_ROUTES[0].path);
+      const routeToUse = calculatedRoute.length > 0 ? calculatedRoute : (selectedRoute?.path ? JSON.parse(selectedRoute.path) : []);
       return findClosestPointOnRoute(routeToUse, passengerSearchCenter);
-    }, [walkingRadius, calculatedRoute, selectedRoute]);
+    }, [walkingRadius, calculatedRoute, selectedRoute, passengerSearchCenter]);
 
     return (
       <motion.div 
@@ -905,91 +1014,109 @@ export default function App() {
     );
   };
 
-  const PassengerEnRouteScreen = () => (
-    <motion.div 
-      initial={{ opacity: 0 }} 
-      animate={{ opacity: 1 }} 
-      className="flex flex-col min-h-[calc(100vh-160px)]"
-    >
-      <div className="flex-1 relative">
-        <div className="absolute inset-0 bg-slate-200">
-          <MapComponent 
-            origin={selectedRoute?.sourceName}
-            destination={selectedRoute?.destName}
-            markers={[{ lat: 36.355, lng: 127.345 }]} // Mock pickup point
-            center={{ lat: 36.355, lng: 127.345 }}
-            zoom={15}
-          />
-        </div>
-        
-        <div className="relative z-10 p-6 space-y-6">
-          <div className="bg-white/90 backdrop-blur-md p-5 rounded-xl shadow-lg flex items-center gap-4">
-            <div className="bg-blue-100 p-3 rounded-full">
-              <Car className="w-6 h-6 text-blue-600" />
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-bold text-on-surface-variant">운전자가 오고 있습니다</p>
-              <p className="text-lg font-extrabold text-primary-container">도착까지 약 3분</p>
+  const PassengerEnRouteScreen = () => {
+    const passengerSearchCenter = pickupPoint || { lat: 36.355, lng: 127.345 };
+    const calculatedPickup = useMemo(() => {
+      const routeToUse = selectedRoute?.path ? JSON.parse(selectedRoute.path) : [];
+      return findClosestPointOnRoute(routeToUse, passengerSearchCenter);
+    }, [selectedRoute, passengerSearchCenter]);
+
+    return (
+      <motion.div 
+        initial={{ opacity: 0 }} 
+        animate={{ opacity: 1 }} 
+        className="flex flex-col min-h-[calc(100vh-160px)]"
+      >
+        <div className="flex-1 relative">
+          <div className="absolute inset-0 bg-slate-200">
+            <MapComponent 
+              origin={selectedRoute?.sourceName}
+              destination={selectedRoute?.destName}
+              polylines={[selectedRoute?.path ? JSON.parse(selectedRoute.path) : []]}
+              markers={[calculatedPickup]}
+              center={calculatedPickup}
+              zoom={15}
+            />
+          </div>
+          
+          <div className="relative z-10 p-6 space-y-6">
+            <div className="bg-white/90 backdrop-blur-md p-5 rounded-xl shadow-lg flex items-center gap-4">
+              <div className="bg-blue-100 p-3 rounded-full">
+                <Car className="w-6 h-6 text-blue-600" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-bold text-on-surface-variant">운전자가 오고 있습니다</p>
+                <p className="text-lg font-extrabold text-primary-container">도착까지 약 3분</p>
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <div className="p-6 bg-white/80 backdrop-blur-xl border-t border-slate-100">
-        <button 
-          onClick={() => setState('PASSENGER_IN_TRANSIT')}
-          className="w-full h-24 bg-[#2E7D32] text-white rounded-3xl shadow-2xl flex flex-col items-center justify-center gap-2 active:scale-95 transition-all"
-        >
-          <CheckCircle className="w-8 h-8" />
-          <div className="text-center">
-            <h3 className="text-xl font-extrabold tracking-tight">차량 탑승 완료</h3>
-            <p className="text-xs font-medium opacity-80 mt-1">차량에 탑승하셨다면 눌러주세요</p>
-          </div>
-        </button>
-      </div>
-    </motion.div>
-  );
-
-  const PassengerInTransitScreen = () => (
-    <motion.div 
-      initial={{ opacity: 0 }} 
-      animate={{ opacity: 1 }} 
-      className="flex flex-col min-h-[calc(100vh-160px)]"
-    >
-      <div className="flex-1 relative">
-        <div className="absolute inset-0 bg-slate-200">
-          <MapComponent 
-            origin={selectedRoute?.sourceName}
-            destination={selectedRoute?.destName}
-            markers={[{ lat: 36.36, lng: 127.36 }]} // Mock destination
-            center={{ lat: 36.355, lng: 127.35 }}
-            zoom={14}
-          />
-        </div>
-        
-        <div className="relative z-10 p-6 space-y-6">
-          <div className="bg-white/90 backdrop-blur-md p-5 rounded-xl shadow-lg flex items-center gap-4">
-            <div className="bg-green-100 p-3 rounded-full">
-              <Navigation className="w-6 h-6 text-green-600" />
+        <div className="p-6 bg-white/80 backdrop-blur-xl border-t border-slate-100">
+          <button 
+            onClick={() => setState('PASSENGER_IN_TRANSIT')}
+            className="w-full h-24 bg-[#2E7D32] text-white rounded-3xl shadow-2xl flex flex-col items-center justify-center gap-2 active:scale-95 transition-all"
+          >
+            <CheckCircle className="w-8 h-8" />
+            <div className="text-center">
+              <h3 className="text-xl font-extrabold tracking-tight">차량 탑승 완료</h3>
+              <p className="text-xs font-medium opacity-80 mt-1">차량에 탑승하셨다면 눌러주세요</p>
             </div>
-            <div className="flex-1">
-              <p className="text-sm font-bold text-on-surface-variant">목적지로 이동 중</p>
-              <p className="text-lg font-extrabold text-primary-container">공과대학 1호관</p>
+          </button>
+        </div>
+      </motion.div>
+    );
+  };
+
+  const PassengerInTransitScreen = () => {
+    const passengerSearchCenter = pickupPoint || { lat: 36.355, lng: 127.345 };
+    const calculatedPickup = useMemo(() => {
+      const routeToUse = selectedRoute?.path ? JSON.parse(selectedRoute.path) : [];
+      return findClosestPointOnRoute(routeToUse, passengerSearchCenter);
+    }, [selectedRoute, passengerSearchCenter]);
+
+    return (
+      <motion.div 
+        initial={{ opacity: 0 }} 
+        animate={{ opacity: 1 }} 
+        className="flex flex-col min-h-[calc(100vh-160px)]"
+      >
+        <div className="flex-1 relative">
+          <div className="absolute inset-0 bg-slate-200">
+            <MapComponent 
+              origin={selectedRoute?.sourceName}
+              destination={selectedRoute?.destName}
+              polylines={[selectedRoute?.path ? JSON.parse(selectedRoute.path) : []]}
+              markers={[calculatedPickup]}
+              center={calculatedPickup}
+              zoom={14}
+            />
+          </div>
+          
+          <div className="relative z-10 p-6 space-y-6">
+            <div className="bg-white/90 backdrop-blur-md p-5 rounded-xl shadow-lg flex items-center gap-4">
+              <div className="bg-green-100 p-3 rounded-full">
+                <Navigation className="w-6 h-6 text-green-600" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-bold text-on-surface-variant">목적지로 이동 중</p>
+                <p className="text-lg font-extrabold text-primary-container">공과대학 1호관</p>
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <div className="p-6 bg-white/80 backdrop-blur-xl border-t border-slate-100">
-        <button 
-          onClick={() => setState('HOME')}
-          className="w-full h-20 bg-primary-container text-white rounded-2xl shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all font-bold text-lg"
-        >
-          하차 완료
-        </button>
-      </div>
-    </motion.div>
-  );
+        <div className="p-6 bg-white/80 backdrop-blur-xl border-t border-slate-100">
+          <button 
+            onClick={() => setState('HOME')}
+            className="w-full h-20 bg-primary-container text-white rounded-2xl shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all font-bold text-lg"
+          >
+            하차 완료
+          </button>
+        </div>
+      </motion.div>
+    );
+  };
 
   const ProfileScreen = () => (
     <motion.div 
@@ -1098,25 +1225,35 @@ export default function App() {
   );
 
   const ProfileEditScreen = () => {
-    const [addresses, setAddresses] = useState<string[]>(user?.savedAddresses || ['']);
+    const [addresses, setAddresses] = useState<SavedAddress[]>(user?.savedAddresses || [{ name: '', lat: 0, lng: 0 }]);
 
-    const handleAddAddress = () => setAddresses([...addresses, '']);
-    const handleAddressChange = (idx: number, val: string) => {
+    const handleAddAddress = () => setAddresses([...addresses, { name: '', lat: 0, lng: 0 }]);
+    const handleAddressChange = (idx: number, place: { name: string; lat: number; lng: number }) => {
       const newAddrs = [...addresses];
-      newAddrs[idx] = val;
+      newAddrs[idx] = place;
       setAddresses(newAddrs);
     };
 
-    const handleSave = () => {
-      if (addresses.some(a => !a)) {
+    const handleSave = async () => {
+      if (addresses.some(a => !a.name)) {
         alert('모든 주소를 입력해주세요.');
         return;
       }
-      setUser({
-        ...user!,
+      if (!user) return;
+      
+      const updatedUser = {
+        ...user,
         savedAddresses: addresses
-      });
-      setState('PROFILE');
+      };
+
+      try {
+        await setDoc(doc(db, 'users', user.uid), updatedUser);
+        setUser(updatedUser);
+        setState('PROFILE');
+      } catch (error) {
+        console.error("Error updating profile:", error);
+        alert("프로필 업데이트 중 오류가 발생했습니다.");
+      }
     };
 
     return (
@@ -1144,16 +1281,16 @@ export default function App() {
               </button>
             </div>
             {addresses.map((addr, idx) => (
-              <div key={idx} className="relative">
-                <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-primary-container" />
-                <input 
-                  type="text"
-                  value={addr}
-                  onChange={(e) => handleAddressChange(idx, e.target.value)}
-                  className="w-full pl-12 pr-4 py-4 bg-surface-container-lowest border-none rounded-xl text-on-surface font-semibold shadow-sm focus:ring-2 focus:ring-primary-container"
-                  placeholder="예: 도안동 트리풀시티"
-                />
-              </div>
+              <AddressAutocomplete
+                key={idx}
+                value={addr.name}
+                onChange={(val) => {
+                  const newAddrs = [...addresses];
+                  newAddrs[idx].name = val;
+                  setAddresses(newAddrs);
+                }}
+                onPlaceSelected={(place) => handleAddressChange(idx, place)}
+              />
             ))}
           </div>
         </div>
@@ -1170,10 +1307,11 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-surface flex flex-col font-sans">
-      {state !== 'SIGNUP' && <TopAppBar title={state === 'HOME' ? "CNU 교직원 카풀" : "카풀 서비스"} />}
+      {state !== 'SIGNUP' && state !== 'LOGIN' && <TopAppBar title={state === 'HOME' ? "CNU 교직원 카풀" : "카풀 서비스"} />}
       
       <main className="flex-1 overflow-y-auto">
         <AnimatePresence mode="wait">
+          {state === 'LOGIN' && <LoginScreen key="login" />}
           {state === 'SIGNUP' && <SignupScreen key="signup" />}
           {state === 'HOME' && <HomeScreen key="home" />}
           {state === 'DRIVER_SETUP' && <DriverSetupScreen key="driver-setup" />}
@@ -1192,7 +1330,7 @@ export default function App() {
         </AnimatePresence>
       </main>
 
-      {state !== 'SIGNUP' && <BottomNav />}
+      {state !== 'SIGNUP' && state !== 'LOGIN' && <BottomNav />}
     </div>
   );
 }

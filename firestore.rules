@@ -1,0 +1,66 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'name', 'department', 'role', 'createdAt']) &&
+             data.uid is string &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             data.department is string && data.department.size() < 100 &&
+             data.role in ['driver', 'passenger', 'both'] &&
+             (!('savedAddresses' in data) || data.savedAddresses is list) &&
+             (!('isVerified' in data) || data.isVerified is bool);
+    }
+
+    function isValidRoute(data) {
+      return data.keys().hasAll(['driverId', 'driverName', 'sourceName', 'destName', 'path', 'status', 'createdAt']) &&
+             data.driverId is string &&
+             data.driverName is string && data.driverName.size() < 100 &&
+             data.sourceName is string && data.sourceName.size() < 200 &&
+             data.destName is string && data.destName.size() < 200 &&
+             data.path is string && data.path.size() < 100000 &&
+             data.status in ['active', 'matched', 'completed', 'cancelled'] &&
+             (!('vehicleInfo' in data) || (data.vehicleInfo is string && data.vehicleInfo.size() < 100)) &&
+             (!('plateNumber' in data) || (data.plateNumber is string && data.plateNumber.size() < 50)) &&
+             (!('departureTime' in data) || (data.departureTime is string && data.departureTime.size() < 50));
+    }
+
+    function isValidRide(data) {
+      return data.keys().hasAll(['routeId', 'passengerId', 'passengerName', 'pickupLat', 'pickupLng', 'status', 'createdAt']) &&
+             data.routeId is string &&
+             data.passengerId is string &&
+             data.passengerName is string && data.passengerName.size() < 100 &&
+             data.pickupLat is number &&
+             data.pickupLng is number &&
+             data.status in ['pending', 'accepted', 'en_route', 'in_transit', 'completed', 'cancelled'];
+    }
+
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if isOwner(userId) && isValidUser(request.resource.data) && request.resource.data.uid == userId;
+      allow update: if isOwner(userId) && isValidUser(request.resource.data) && request.resource.data.uid == resource.data.uid && request.resource.data.createdAt == resource.data.createdAt;
+    }
+
+    match /routes/{routeId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isValidRoute(request.resource.data) && request.resource.data.driverId == request.auth.uid;
+      allow update: if isAuthenticated() && isValidRoute(request.resource.data) && resource.data.driverId == request.auth.uid && request.resource.data.driverId == resource.data.driverId && request.resource.data.createdAt == resource.data.createdAt;
+    }
+
+    match /rides/{rideId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isValidRide(request.resource.data) && request.resource.data.passengerId == request.auth.uid;
+      allow update: if isAuthenticated() && isValidRide(request.resource.data) && request.resource.data.createdAt == resource.data.createdAt &&
+                    (resource.data.passengerId == request.auth.uid || 
+                     get(/databases/$(database)/documents/routes/$(resource.data.routeId)).data.driverId == request.auth.uid);
+    }
+  }
+}
