@@ -36,24 +36,25 @@ export function DriverSetupScreen() {
   const canStart = !!driverSource && !!driverDest && !isSubmitting;
 
   const handleStartRoute = async () => {
-    alert(`canStart: ${canStart}, user: ${user?.uid ?? 'NULL'}, src: ${driverSource}, dest: ${driverDest}`); // 디버그용
     if (!canStart || !user) return;
     setIsSubmitting(true);
     try {
       setDriverRoute([]);
-      const route = await createRoute({
+      // Firestore는 undefined 필드를 거부하므로, 좌표가 없으면 필드 자체를 제외
+      const routeData: Record<string, any> = {
         driverId: user.uid,
         driverName: user.name,
         vehicle: user.vehicle,
         sourceName: driverSource,
-        sourceCoord: driverSourceCoord ?? undefined,
         destName: driverDest,
-        destCoord: driverDestCoord ?? undefined,
         path: JSON.stringify([]),
         status: 'active',
         availableSeats,
         departureTime: departureTimeStr,
-      });
+      };
+      if (driverSourceCoord) routeData.sourceCoord = driverSourceCoord;
+      if (driverDestCoord) routeData.destCoord = driverDestCoord;
+      const route = await createRoute(routeData as any);
       setCurrentRoute(route);
       setState('DRIVER_ACTIVE');
     } catch (e: any) {

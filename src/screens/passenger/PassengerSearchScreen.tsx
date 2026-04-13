@@ -31,7 +31,8 @@ export function PassengerSearchScreen() {
         alert('이미 진행 중인 카풀이 있습니다. 기존 건을 취소 후 신청해주세요.');
         return;
       }
-      const ride = await createRide({
+      // Firestore는 undefined 필드를 거부하므로 조건부 포함
+      const rideData: Record<string, any> = {
         routeId: route.id,
         driverId: route.driverId,
         driverName: route.driverName,
@@ -39,10 +40,11 @@ export function PassengerSearchScreen() {
         passengerName: user.name,
         pickupCoord: route.sourceCoord ?? { lat: 36.3694, lng: 127.3448 },
         passengerDepartureAddress: user.savedAddresses?.[0]?.name ?? '',
-        passengerDepartureCoord: pickupPoint ?? undefined,
         passengerDestBuilding: user.savedAddresses?.[1]?.name ?? '',
         status: 'pending',
-      });
+      };
+      if (pickupPoint) rideData.passengerDepartureCoord = pickupPoint;
+      const ride = await createRide(rideData as any);
       setCurrentRide(ride);
       setSelectedRoute(route);
       setState('PASSENGER_MATCHED');
