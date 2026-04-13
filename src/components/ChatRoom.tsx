@@ -1,14 +1,16 @@
 import { useState, useEffect, useRef } from 'react';
 import { ArrowLeft, Send, MessageCircle } from 'lucide-react';
 import { motion } from 'motion/react';
-import { sendMessage, subscribeToMessages, ChatMessage } from '../lib/chatService';
+import { sendMessage, subscribeToMessages, sendSystemMessage, ChatMessage } from '../lib/chatService';
+import { subscribeToRide, confirmRide, cancelRide, completeRide } from '../lib/firebaseDb';
 import { useApp } from '../contexts/AppContext';
 
 export function ChatRoom() {
-  const { user, currentRide, setState } = useApp();
+  const { user, currentRide, setCurrentRide, setState } = useApp();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isSending, setIsSending] = useState(false);
+  const [liveRide, setLiveRide] = useState(currentRide);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const rideId = currentRide?.id;
@@ -20,8 +22,83 @@ export function ChatRoom() {
   }, [rideId]);
 
   useEffect(() => {
+    if (!rideId) return;
+    const unsubscribe = subscribeToRide(rideId, (ride) => {
+      if (ride) {
+        setLiveRide(ride);
+        setCurrentRide(ride);
+      }
+    });
+    return unsubscribe;
+  }, [rideId]);
+
+  useEffect(() => {
+    if (!liveRide) return;
+    if (liveRide.status === 'cancelled') {
+      const who = liveRide.cancelledBy === 'driver' ? '운전자' : '탑승자';
+      alert(`${who}가 매칭을 취소했습니다.`);
+      setState('HOME');
+    }
+    if (liveRide.status === 'rejected') {
+      alert('운전자가 신청을 거절했습니다.');
+      setState('HOME');
+    }
+    if (liveRide.status === 'completed') {
+      alert('카풀이 완료되었습니다!');
+      setState('HOME');
+    }
+  }, [liveRide?.status]);
+
+  useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  const myRole: 'driver' | 'passenger' = liveRide?.driverId === user?.uid ? 'driver' : 'passenger';
+  const iConfirmed = myRole === 'driver' ? liveRide?.driverConfirmed : liveRide?.passengerConfirmed;
+  const status = liveRide?.status;
+
+  const handleConfirm = async () => {
+    if (!rideId || !user) return;
+    try {
+      const newStatus = await confirmRide(rideId, myRole);
+      if (newStatus === 'confirmed') {
+        await sendSystemMessage(rideId, '양쪽 모두 합의 완료! 매칭이 확정되었습니다.');
+      } else {
+        await sendSystemMessage(rideId, `${user.name}님이 합의를 확정했습니다. 상대방의 확정을 기다립니다.`);
+      }
+    } catch (e: any) {
+      alert(e.message || '확정 중 오류가 발생했습니다.');
+    }
+  };
+
+  const handleCancel = async () => {
+    if (!rideId || !user || !liveRide) return;
+    if (!confirm('정말 매칭을 취소하시겠습니까?')) return;
+    try {
+      await cancelRide(rideId, myRole, user.uid);
+      await sendSystemMessage(rideId, `${user.name}님이 매칭을 취소했습니다.`);
+      setState('HOME');
+    } catch (e: any) {
+      alert(e.message || '취소 중 오류가 발생했습니다.');
+    }
+  };
+
+  const handleArrived = async () => {
+    if (!rideId || !user) return;
+    await sendSystemMessage(rideId, `${user.name}님이 약속 장소에 도착했습니다!`);
+  };
+
+  const handleComplete = async () => {
+    if (!rideId || !liveRide) return;
+    if (!confirm('카풀을 완료하시겠습니까?')) return;
+    try {
+      await completeRide(rideId, liveRide.driverId, liveRide.passengerId);
+      await sendSystemMessage(rideId, '카풀이 완료되었습니다. 이용해 주셔서 감사합니다!');
+      setState('HOME');
+    } catch (e: any) {
+      alert(e.message || '완료 처리 중 오류가 발생했습니다.');
+    }
+  };
 
   const handleSend = async () => {
     if (!input.trim() || !rideId || !user || isSending) return;
@@ -72,6 +149,16 @@ export function ChatRoom() {
           </div>
         )}
         {messages.map(msg => {
+          // System message — centered notification style
+          if (msg.senderId === 'system') {
+            return (
+              <div key={msg.id} className="flex justify-center my-2">
+                <div className="bg-slate-100 text-slate-600 text-xs font-medium px-4 py-2 rounded-full max-w-[85%] text-center">
+                  {msg.text}
+                </div>
+              </div>
+            );
+          }
           const isMe = msg.senderId === user?.uid;
           return (
             <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
@@ -97,6 +184,54 @@ export function ChatRoom() {
         })}
         <div ref={bottomRef} />
       </div>
+
+      {/* 액션 버튼 영역 */}
+      {status && status !== 'completed' && status !== 'cancelled' && status !== 'rejected' && status !== 'pending' && (
+        <div className="px-4 py-3 bg-white border-t border-slate-100 flex gap-2 flex-wrap">
+          {/* 매칭 취소 */}
+          <button
+            onClick={handleCancel}
+            className="px-4 py-2.5 bg-red-50 text-red-600 rounded-xl text-xs font-bold border border-red-200"
+          >
+            매칭 취소
+          </button>
+
+          {/* 합의 완료 — accepted or confirming(상대만 확정) */}
+          {(status === 'accepted' || (status === 'confirming' && !iConfirmed)) && (
+            <button
+              onClick={handleConfirm}
+              className="flex-1 px-4 py-2.5 bg-[#2E7D32] text-white rounded-xl text-xs font-bold"
+            >
+              합의 완료 ✓
+            </button>
+          )}
+
+          {/* 확정 대기 표시 */}
+          {status === 'confirming' && iConfirmed && (
+            <span className="flex-1 px-4 py-2.5 bg-amber-50 text-amber-700 rounded-xl text-xs font-bold text-center border border-amber-200">
+              상대방 확정 대기 중...
+            </span>
+          )}
+
+          {/* 도착 + 하차 — confirmed */}
+          {status === 'confirmed' && (
+            <>
+              <button
+                onClick={handleArrived}
+                className="flex-1 px-4 py-2.5 bg-blue-50 text-blue-700 rounded-xl text-xs font-bold border border-blue-200"
+              >
+                도착했어요 📍
+              </button>
+              <button
+                onClick={handleComplete}
+                className="flex-1 px-4 py-2.5 bg-primary-container text-white rounded-xl text-xs font-bold"
+              >
+                하차 완료
+              </button>
+            </>
+          )}
+        </div>
+      )}
 
       {/* 입력창 */}
       <div className="px-4 py-4 bg-white border-t border-slate-100">
