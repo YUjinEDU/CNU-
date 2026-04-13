@@ -8,7 +8,7 @@ import { getDistance } from '../../lib/geoUtils';
 import { useApp } from '../../contexts/AppContext';
 
 export function DriverActiveScreen() {
-  const { setState, user, driverSource, driverDest, setCurrentRide, driverSourceCoord, currentRoute } = useApp();
+  const { setState, user, driverSource, driverDest, setCurrentRide, driverSourceCoord, currentRoute, clearActiveCarpool } = useApp();
   const [pendingRides, setPendingRides] = useState<Ride[]>([]);
 
   // 실시간 탑승 신청 구독
@@ -162,8 +162,11 @@ export function DriverActiveScreen() {
         onClick={async () => {
           if (!confirm('운행을 취소하시겠습니까?')) return;
           if (currentRoute?.id) {
-            try { await updateRouteStatus(currentRoute.id, 'cancelled'); } catch {}
+            try { await updateRouteStatus(currentRoute.id, 'cancelled'); } catch (e: any) {
+              alert(e.message || '운행 취소 중 오류가 발생했습니다.');
+            }
           }
+          clearActiveCarpool();
           setState('HOME');
         }}
         className="w-full py-3 text-red-500 font-bold text-sm"

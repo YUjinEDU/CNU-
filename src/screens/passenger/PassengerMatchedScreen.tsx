@@ -116,6 +116,7 @@ export function PassengerMatchedScreen() {
             if (!confirm('탑승 신청을 취소하시겠습니까?')) return;
             try {
               await cancelRide(currentRide.id, 'passenger', user?.uid ?? '');
+              clearActiveCarpool();
               setState('HOME');
             } catch (e: any) {
               alert(e.message || '취소 중 오류가 발생했습니다.');

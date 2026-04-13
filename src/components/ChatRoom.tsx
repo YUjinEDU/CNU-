@@ -90,6 +90,7 @@ export function ChatRoom() {
     try {
       await cancelRide(rideId, myRole, user.uid);
       await sendSystemMessage(rideId, `${user.name}님이 매칭을 취소했습니다.`);
+      clearActiveCarpool();
       setState('HOME');
     } catch (e: any) {
       alert(e.message || '취소 중 오류가 발생했습니다.');
@@ -113,6 +114,7 @@ export function ChatRoom() {
     try {
       await completeRide(rideId, liveRide.driverId, liveRide.passengerId);
       await sendSystemMessage(rideId, '카풀이 완료되었습니다. 이용해 주셔서 감사합니다!');
+      clearActiveCarpool();
       setState('HOME');
     } catch (e: any) {
       alert(e.message || '완료 처리 중 오류가 발생했습니다.');
