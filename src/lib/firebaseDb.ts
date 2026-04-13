@@ -74,6 +74,10 @@ export async function updateRideStatus(id: string, status: Ride['status']): Prom
   await updateDoc(doc(db, 'rides', id), { status });
 }
 
+export async function updateRideField(id: string, data: Record<string, unknown>): Promise<void> {
+  await updateDoc(doc(db, 'rides', id), data);
+}
+
 export function subscribeToRidesByDriver(
   driverId: string,
   callback: (rides: Ride[]) => void

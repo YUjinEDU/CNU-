@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
-import { ArrowLeft, Send, MessageCircle } from 'lucide-react';
+import { ArrowLeft, Send, MessageCircle, MapPin } from 'lucide-react';
 import { motion } from 'motion/react';
 import { sendMessage, subscribeToMessages, sendSystemMessage, ChatMessage } from '../lib/chatService';
-import { subscribeToRide, confirmRide, cancelRide, completeRide } from '../lib/firebaseDb';
+import { subscribeToRide, confirmRide, cancelRide, completeRide, updateRideField } from '../lib/firebaseDb';
 import { useApp } from '../contexts/AppContext';
 
 export function ChatRoom() {
@@ -55,7 +55,17 @@ export function ChatRoom() {
 
   const myRole: 'driver' | 'passenger' = liveRide?.driverId === user?.uid ? 'driver' : 'passenger';
   const iConfirmed = myRole === 'driver' ? liveRide?.driverConfirmed : liveRide?.passengerConfirmed;
+  const otherArrived = myRole === 'driver' ? liveRide?.passengerArrived : liveRide?.driverArrived;
+  const iArrived = myRole === 'driver' ? liveRide?.driverArrived : liveRide?.passengerArrived;
   const status = liveRide?.status;
+  const [showArrivalPopup, setShowArrivalPopup] = useState(false);
+
+  // 상대방 도착 감지 → 팝업
+  useEffect(() => {
+    if (otherArrived) {
+      setShowArrivalPopup(true);
+    }
+  }, [otherArrived]);
 
   const handleConfirm = async () => {
     if (!rideId || !user) return;
@@ -85,7 +95,13 @@ export function ChatRoom() {
 
   const handleArrived = async () => {
     if (!rideId || !user) return;
-    await sendSystemMessage(rideId, `${user.name}님이 약속 장소에 도착했습니다!`);
+    try {
+      const field = myRole === 'driver' ? 'driverArrived' : 'passengerArrived';
+      await updateRideField(rideId, { [field]: true });
+      await sendSystemMessage(rideId, `${user.name}님이 약속 장소에 도착했습니다!`);
+    } catch (e: any) {
+      alert(e.message || '도착 알림 전송 중 오류가 발생했습니다.');
+    }
   };
 
   const handleComplete = async () => {
@@ -139,6 +155,27 @@ export function ChatRoom() {
           </div>
         </div>
       </div>
+
+      {/* 상대방 도착 팝업 */}
+      {showArrivalPopup && (
+        <div className="px-4 py-3 bg-green-50 border-b border-green-200 flex items-center gap-3">
+          <div className="bg-green-500 text-white p-2 rounded-full animate-bounce">
+            <MapPin className="w-5 h-5" />
+          </div>
+          <div className="flex-1">
+            <p className="font-bold text-green-800 text-sm">
+              {myRole === 'driver' ? '탑승자' : '운전자'}가 약속 장소에 도착했습니다!
+            </p>
+            <p className="text-xs text-green-600">빠르게 만나러 가주세요</p>
+          </div>
+          <button
+            onClick={() => setShowArrivalPopup(false)}
+            className="text-green-600 font-bold text-xs px-3 py-1.5 bg-green-100 rounded-full"
+          >
+            확인
+          </button>
+        </div>
+      )}
 
       {/* 메시지 목록 */}
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 bg-slate-50">
@@ -218,9 +255,14 @@ export function ChatRoom() {
             <>
               <button
                 onClick={handleArrived}
-                className="flex-1 px-4 py-2.5 bg-blue-50 text-blue-700 rounded-xl text-xs font-bold border border-blue-200"
+                disabled={!!iArrived}
+                className={`flex-1 px-4 py-2.5 rounded-xl text-xs font-bold border ${
+                  iArrived
+                    ? 'bg-green-100 text-green-600 border-green-200'
+                    : 'bg-blue-50 text-blue-700 border-blue-200'
+                }`}
               >
-                도착했어요 📍
+                {iArrived ? '도착 알림 완료 ✓' : '도착했어요 📍'}
               </button>
               <button
                 onClick={handleComplete}
