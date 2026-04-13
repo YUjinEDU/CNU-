@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 import { BadgeCheck, MessageCircle, Clock } from 'lucide-react';
 import { motion } from 'motion/react';
-import { subscribeToRide, updateRideStatus } from '../../lib/firebaseDb';
+import { subscribeToRide, cancelRide } from '../../lib/firebaseDb';
 import { useApp } from '../../contexts/AppContext';
 
 export function PassengerMatchedScreen() {
-  const { setState, currentRide, selectedRoute, setCurrentRide } = useApp();
+  const { setState, currentRide, selectedRoute, setCurrentRide, user } = useApp();
   const [rideStatus, setRideStatus] = useState(currentRide?.status || 'pending');
 
   // 실시간 탑승 상태 구독
@@ -112,7 +112,7 @@ export function PassengerMatchedScreen() {
             if (!currentRide?.id) return;
             if (!confirm('탑승 신청을 취소하시겠습니까?')) return;
             try {
-              await updateRideStatus(currentRide.id, 'cancelled');
+              await cancelRide(currentRide.id, 'passenger', user?.uid ?? '');
               setState('HOME');
             } catch (e: any) {
               alert(e.message || '취소 중 오류가 발생했습니다.');

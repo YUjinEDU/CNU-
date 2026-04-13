@@ -9,7 +9,7 @@ import { hasArrived, remainingDistance, formatDistance, estimateArrivalMinutes }
 import { useApp } from '../../contexts/AppContext';
 
 export function DriverEnRouteScreen() {
-  const { user, setState, driverRoute, localUid } = useApp();
+  const { user, setState, driverRoute } = useApp();
   // GPS 비활성화 — 수동 도착 알림으로 전환
   // const { position, heading, speed, startTracking, stopTracking, isTracking } = useGeolocation();
   const position = null;

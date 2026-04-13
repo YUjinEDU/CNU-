@@ -8,7 +8,7 @@ import { updateLocation, removeLocation } from '../../lib/locationService';
 import { useApp } from '../../contexts/AppContext';
 
 export function DriverInTransitScreen() {
-  const { user, setState, driverRoute, driverDestCoord, localUid } = useApp();
+  const { user, setState, driverRoute, driverDestCoord } = useApp();
   // GPS 비활성화 — 수동 도착 알림으로 전환
   // const { position, heading, speed, startTracking, stopTracking } = useGeolocation();
   const position = null;
@@ -40,7 +40,8 @@ export function DriverInTransitScreen() {
   // }, [position, destination]);
 
   const handleComplete = async () => {
-    await removeLocation(localUid);
+    // GPS 비활성화 — removeLocation 주석처리
+    // await removeLocation(user?.uid ?? '');
     setState('HOME');
   };
 

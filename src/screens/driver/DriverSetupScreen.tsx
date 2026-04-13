@@ -9,7 +9,7 @@ export function DriverSetupScreen() {
     user, setState,
     driverSource, setDriverSource, driverDest, setDriverDest,
     driverSourceCoord, setDriverSourceCoord, driverDestCoord, setDriverDestCoord,
-    setDriverRoute,
+    setDriverRoute, setCurrentRoute,
   } = useApp();
 
   const [availableSeats, setAvailableSeats] = useState(
@@ -41,7 +41,7 @@ export function DriverSetupScreen() {
     try {
       // 경로 좌표가 없으면 빈 배열로 등록 (매칭은 출발지/도착지 이름 기준)
       setDriverRoute([]);
-      await createRoute({
+      const route = await createRoute({
         driverId: user.uid,
         driverName: user.name,
         vehicle: user.vehicle,
@@ -54,6 +54,7 @@ export function DriverSetupScreen() {
         availableSeats,
         departureTime: departureTimeStr,
       });
+      setCurrentRoute(route);
       setState('DRIVER_ACTIVE');
     } finally {
       setIsSubmitting(false);

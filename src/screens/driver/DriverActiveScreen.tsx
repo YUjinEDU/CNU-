@@ -2,13 +2,13 @@ import { useState, useEffect, useMemo } from 'react';
 import { UserCheck, Bell, Check, X, MapPin, Navigation } from 'lucide-react';
 import { motion } from 'motion/react';
 import { Ride } from '../../types';
-import { subscribeToRidesByDriver, acceptRide, rejectRide } from '../../lib/firebaseDb';
+import { subscribeToRidesByDriver, acceptRide, rejectRide, updateRouteStatus } from '../../lib/firebaseDb';
 import { sendSystemMessage } from '../../lib/chatService';
 import { getDistance } from '../../lib/geoUtils';
 import { useApp } from '../../contexts/AppContext';
 
 export function DriverActiveScreen() {
-  const { setState, user, driverSource, driverDest, setCurrentRide, driverSourceCoord } = useApp();
+  const { setState, user, driverSource, driverDest, setCurrentRide, driverSourceCoord, currentRoute } = useApp();
   const [pendingRides, setPendingRides] = useState<Ride[]>([]);
 
   // 실시간 탑승 신청 구독
@@ -159,7 +159,13 @@ export function DriverActiveScreen() {
 
       {/* 운행 취소 */}
       <button
-        onClick={() => { if (confirm('운행을 취소하시겠습니까?')) setState('HOME'); }}
+        onClick={async () => {
+          if (!confirm('운행을 취소하시겠습니까?')) return;
+          if (currentRoute?.id) {
+            try { await updateRouteStatus(currentRoute.id, 'cancelled'); } catch {}
+          }
+          setState('HOME');
+        }}
         className="w-full py-3 text-red-500 font-bold text-sm"
       >
         운행 취소
