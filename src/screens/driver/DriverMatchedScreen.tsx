@@ -2,18 +2,23 @@ import { useMemo, useState, useEffect } from 'react';
 import { CheckCircle, Phone, MapPin, Clock, Navigation } from 'lucide-react';
 import { motion } from 'motion/react';
 import { findClosestPointOnRoute } from '../../lib/geoUtils';
+import { getUser } from '../../lib/localDb';
 import { reverseGeocode } from '../../lib/naverApi';
 import { useApp } from '../../contexts/AppContext';
 
 export function DriverMatchedScreen() {
-  const { setState, driverRoute } = useApp();
-  const passengerSearchCenter = { lat: 36.355, lng: 127.345 };
+  const { setState, driverRoute, currentRide } = useApp();
   const [pickupAddress, setPickupAddress] = useState('픽업 위치 확인 중...');
 
+  const passengerUser = useMemo(() => {
+    return currentRide ? getUser(currentRide.passengerId) : null;
+  }, [currentRide]);
+
   const calculatedPickup = useMemo(() => {
+    if (currentRide?.pickupCoord) return currentRide.pickupCoord;
     const routeToUse = driverRoute.length > 0 ? driverRoute : [];
-    return findClosestPointOnRoute(routeToUse, passengerSearchCenter);
-  }, [driverRoute]);
+    return findClosestPointOnRoute(routeToUse, { lat: 36.355, lng: 127.345 });
+  }, [driverRoute, currentRide]);
 
   useEffect(() => {
     reverseGeocode(calculatedPickup).then(setPickupAddress);
@@ -35,18 +40,26 @@ export function DriverMatchedScreen() {
 
       <div className="bg-surface-container-lowest rounded-2xl p-6 shadow-lg border border-primary-container/10">
         <div className="flex items-center gap-4 mb-6">
-          <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-primary-container/20">
-            <img src="https://picsum.photos/seed/passenger/150/150" alt="Passenger" className="w-full h-full object-cover" />
+          <div className="w-16 h-16 rounded-full bg-primary-container/10 flex items-center justify-center">
+            <span className="text-2xl font-bold text-primary-container">
+              {(passengerUser?.name || currentRide?.passengerName || '?')[0]}
+            </span>
           </div>
           <div>
-            <h3 className="text-xl font-bold text-primary-container">이*민 주무관</h3>
-            <p className="text-sm text-on-surface-variant">학생처 장학팀</p>
+            <h3 className="text-xl font-bold text-primary-container">
+              {passengerUser?.name || currentRide?.passengerName || '탑승자'}
+            </h3>
+            <p className="text-sm text-on-surface-variant">
+              {passengerUser?.department || ''}
+            </p>
           </div>
-          <div className="ml-auto">
-            <button className="w-10 h-10 rounded-full bg-blue-50 text-primary-container flex items-center justify-center">
-              <Phone className="w-5 h-5" />
-            </button>
-          </div>
+          {passengerUser?.phone && (
+            <div className="ml-auto">
+              <a href={`tel:${passengerUser.phone}`} className="w-10 h-10 rounded-full bg-blue-50 text-primary-container flex items-center justify-center">
+                <Phone className="w-5 h-5" />
+              </a>
+            </div>
+          )}
         </div>
 
         <div className="space-y-4 bg-surface-container-low p-4 rounded-xl">
@@ -61,7 +74,7 @@ export function DriverMatchedScreen() {
             <Clock className="w-5 h-5 text-primary-container mt-0.5" />
             <div>
               <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">예상 픽업 시간</p>
-              <p className="font-semibold text-on-surface">08:35 AM (약 5분 후)</p>
+              <p className="font-semibold text-on-surface">약 5분 후</p>
             </div>
           </div>
         </div>

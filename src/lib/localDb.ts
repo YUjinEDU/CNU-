@@ -100,6 +100,29 @@ export function getRidesByRoute(routeId: string): Ride[] {
   return read<Ride>(KEYS.rides).filter(r => r.routeId === routeId);
 }
 
+export function getRidesByDriver(driverId: string): Ride[] {
+  return read<Ride>(KEYS.rides).filter(r => r.driverId === driverId && r.status === 'pending');
+}
+
+export function getRideById(id: string): Ride | null {
+  return read<Ride>(KEYS.rides).find(r => r.id === id) || null;
+}
+
+export function updateRideStatus(id: string, status: Ride['status']): void {
+  const rides = read<Ride>(KEYS.rides);
+  const idx = rides.findIndex(r => r.id === id);
+  if (idx >= 0) {
+    rides[idx] = { ...rides[idx], status };
+    write(KEYS.rides, rides);
+  }
+}
+
+export function getActiveRideForPassenger(passengerId: string): Ride | null {
+  return read<Ride>(KEYS.rides).find(r =>
+    r.passengerId === passengerId && !['completed', 'cancelled'].includes(r.status)
+  ) || null;
+}
+
 // ── Live Locations (in-memory + localStorage) ──
 
 export function updateLiveLocation(uid: string, position: Coordinate, heading?: number | null, speed?: number | null): void {

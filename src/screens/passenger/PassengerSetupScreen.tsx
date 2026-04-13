@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { Search, Building, FlaskConical, Building2, Tractor } from 'lucide-react';
 import { motion } from 'motion/react';
 import { Coordinate } from '../../types';
-import { AddressAutocomplete } from '../../components/AddressAutocomplete';
+import { MapComponent } from '../../components/MapComponent';
+import { AddressSearch } from '../../components/AddressSearch';
 import { useApp } from '../../contexts/AppContext';
 
 export function PassengerSetupScreen() {
@@ -13,8 +14,10 @@ export function PassengerSetupScreen() {
   );
   const [destinationZone, setDestinationZone] = useState('');
 
+  const walkingRadiusMeters = walkingRadius * 80; // 약 80m/분
+
   const handleSearch = () => {
-    if (!pickupLocation || !destinationZone) {
+    if (!pickupCoords || !destinationZone) {
       alert('픽업 지역과 목적지 권역을 선택해주세요.');
       return;
     }
@@ -26,25 +29,36 @@ export function PassengerSetupScreen() {
     <motion.div
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
-      className="px-6 py-8 space-y-8 pb-32"
+      className="px-6 py-8 space-y-6 pb-32"
     >
       <h2 className="text-3xl font-extrabold text-primary-container tracking-tight">카풀 검색하기</h2>
 
+      {/* 지도 — 내 위치 + 도보 반경 원 */}
+      {pickupCoords && (
+        <div className="rounded-xl overflow-hidden h-48 bg-slate-200">
+          <MapComponent
+            center={pickupCoords}
+            zoom={15}
+            markers={[pickupCoords]}
+            circles={[{ center: pickupCoords, radius: walkingRadiusMeters, color: '#3b82f6' }]}
+          />
+        </div>
+      )}
+
       <div className="space-y-6">
-        <div className="bg-surface-container-lowest p-6 rounded-xl shadow-sm">
-          <label className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-3 block">희망 픽업 지역 검색</label>
-          <AddressAutocomplete
+        <div className="bg-surface-container-lowest p-5 rounded-xl shadow-sm">
+          <label className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-3 block">내 출발 위치</label>
+          <AddressSearch
             value={pickupLocation}
-            onChange={setPickupLocation}
-            onPlaceSelected={(place) => {
-              setPickupLocation(place.name);
-              setPickupCoords({ lat: place.lat, lng: place.lng });
+            onAddressSelected={(result) => {
+              setPickupLocation(result.name);
+              if (result.lat !== 0) setPickupCoords({ lat: result.lat, lng: result.lng });
             }}
-            placeholder="주변 지역 검색"
+            placeholder="집 주소 검색 (카카오 우편번호)"
           />
         </div>
 
-        <div className="bg-surface-container-lowest p-6 rounded-xl shadow-sm">
+        <div className="bg-surface-container-lowest p-5 rounded-xl shadow-sm">
           <label className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-4 block">목적지 권역 선택</label>
           <div className="grid grid-cols-2 gap-3">
             {[
@@ -66,28 +80,31 @@ export function PassengerSetupScreen() {
           </div>
         </div>
 
-        <div className="bg-surface-container-lowest p-8 rounded-xl shadow-sm text-center space-y-6">
-          <h3 className="text-xl font-extrabold text-primary-container">🏃‍♂️ 나는 최대 몇 분까지 걸어갈 수 있나요?</h3>
-          <div className="space-y-4">
-            <div className="flex justify-between px-2">
-              <span className={`text-xs font-bold px-3 py-1 rounded-full ${walkingRadius === 5 ? 'bg-primary-container text-white' : 'bg-slate-100 text-slate-400'}`}>5분</span>
-              <span className="text-2xl font-black text-primary-container tracking-tighter">{walkingRadius}분</span>
-              <span className={`text-xs font-bold px-3 py-1 rounded-full ${walkingRadius === 15 ? 'bg-primary-container text-white' : 'bg-slate-100 text-slate-400'}`}>15분</span>
-            </div>
-            <input
-              type="range"
-              min="5" max="15" step="1"
-              value={walkingRadius}
-              onChange={(e) => setWalkingRadius(parseInt(e.target.value))}
-              className="w-full h-2 bg-slate-200 rounded-full appearance-none accent-primary-container"
-            />
+        <div className="bg-surface-container-lowest p-6 rounded-xl shadow-sm text-center space-y-4">
+          <h3 className="text-lg font-extrabold text-primary-container">🏃‍♂️ 최대 도보 시간</h3>
+          <div className="flex justify-between px-2">
+            <span className={`text-xs font-bold px-3 py-1 rounded-full ${walkingRadius === 5 ? 'bg-primary-container text-white' : 'bg-slate-100 text-slate-400'}`}>5분</span>
+            <span className="text-2xl font-black text-primary-container">{walkingRadius}분</span>
+            <span className={`text-xs font-bold px-3 py-1 rounded-full ${walkingRadius === 15 ? 'bg-primary-container text-white' : 'bg-slate-100 text-slate-400'}`}>15분</span>
           </div>
+          <input
+            type="range" min="5" max="15" step="1"
+            value={walkingRadius}
+            onChange={(e) => setWalkingRadius(parseInt(e.target.value))}
+            className="w-full h-2 bg-slate-200 rounded-full appearance-none accent-primary-container"
+          />
+          <p className="text-xs text-on-surface-variant">약 {walkingRadiusMeters}m 반경</p>
         </div>
       </div>
 
       <button
         onClick={handleSearch}
-        className="w-full py-5 bg-primary-container text-white rounded-xl text-lg font-bold shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all"
+        disabled={!pickupCoords || !destinationZone}
+        className={`w-full py-5 rounded-xl text-lg font-bold shadow-xl flex items-center justify-center gap-3 transition-all ${
+          pickupCoords && destinationZone
+            ? 'bg-primary-container text-white active:scale-95'
+            : 'bg-slate-300 text-slate-500 cursor-not-allowed'
+        }`}
       >
         <Search className="w-6 h-6" />
         내 주변 동승 차량 찾기

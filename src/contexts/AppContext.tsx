@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { AppState, User, Route, Coordinate } from '../types';
+import { AppState, User, Route, Ride, Coordinate } from '../types';
 import { getUser, getActiveRoutes, seedTestData } from '../lib/localDb';
 
 // 로컬 UID
@@ -28,6 +28,10 @@ interface AppContextType {
   setPickupPoint: (point: Coordinate | null) => void;
   availableRoutes: Route[];
   refreshRoutes: () => void;
+  currentRide: Ride | null;
+  setCurrentRide: (ride: Ride | null) => void;
+  currentRoute: Route | null;
+  setCurrentRoute: (route: Route | null) => void;
   driverSource: string;
   setDriverSource: (source: string) => void;
   driverDest: string;
@@ -57,6 +61,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [selectedRoute, setSelectedRoute] = useState<Route | null>(null);
   const [pickupPoint, setPickupPoint] = useState<Coordinate | null>(null);
   const [availableRoutes, setAvailableRoutes] = useState<Route[]>([]);
+  const [currentRide, setCurrentRide] = useState<Ride | null>(null);
+  const [currentRoute, setCurrentRoute] = useState<Route | null>(null);
   const [driverSource, setDriverSource] = useState('');
   const [driverDest, setDriverDest] = useState('');
   const [driverRoute, setDriverRoute] = useState<Coordinate[]>([]);
@@ -89,6 +95,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       selectedRoute, setSelectedRoute,
       pickupPoint, setPickupPoint,
       availableRoutes, refreshRoutes,
+      currentRide, setCurrentRide,
+      currentRoute, setCurrentRoute,
       driverSource, setDriverSource,
       driverDest, setDriverDest,
       driverRoute, setDriverRoute,

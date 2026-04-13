@@ -1,10 +1,32 @@
-import { UserCheck, Search } from 'lucide-react';
+import { useMemo } from 'react';
+import { UserCheck, Bell, Check, X } from 'lucide-react';
 import { motion } from 'motion/react';
 import { MapComponent } from '../../components/MapComponent';
+import { getRidesByDriver, updateRideStatus, getUser } from '../../lib/localDb';
 import { useApp } from '../../contexts/AppContext';
 
 export function DriverActiveScreen() {
-  const { setState, driverRoute } = useApp();
+  const { setState, driverRoute, localUid, user, driverSource, driverDest, setCurrentRide } = useApp();
+
+  // 대기 중인 탑승 신청 조회
+  const pendingRides = useMemo(() => {
+    return getRidesByDriver(localUid).map(ride => {
+      const passenger = getUser(ride.passengerId);
+      return { ...ride, passenger };
+    });
+  }, [localUid]);
+
+  const handleAccept = (rideId: string) => {
+    updateRideStatus(rideId, 'accepted');
+    const ride = getRidesByDriver(localUid).find(r => r.id === rideId) ||
+      { ...pendingRides.find(r => r.id === rideId)!, status: 'accepted' as const };
+    setCurrentRide(ride);
+    setState('DRIVER_MATCHED');
+  };
+
+  const handleReject = (rideId: string) => {
+    updateRideStatus(rideId, 'cancelled');
+  };
 
   return (
     <motion.div
@@ -14,10 +36,11 @@ export function DriverActiveScreen() {
     >
       <div className="flex-1 relative">
         <div className="absolute inset-0 bg-slate-200">
-          <MapComponent polylines={[driverRoute.length > 0 ? driverRoute : []]} />
+          <MapComponent polylines={driverRoute.length > 0 ? [driverRoute] : []} />
         </div>
 
-        <div className="relative z-10 p-6 space-y-6">
+        <div className="relative z-10 p-6 space-y-4">
+          {/* 상태 배너 */}
           <div className="bg-primary-container text-white p-5 rounded-xl shadow-2xl flex items-center gap-4 border border-white/10">
             <div className="bg-white/20 p-2 rounded-full">
               <UserCheck className="w-6 h-6" />
@@ -28,18 +51,9 @@ export function DriverActiveScreen() {
             </div>
           </div>
 
-          <div className="bg-white/90 backdrop-blur-md p-6 rounded-xl shadow-lg space-y-4">
-            <div className="flex justify-between items-start">
-              <div className="space-y-1">
-                <span className="inline-block px-3 py-1 bg-blue-50 text-primary-container text-[10px] font-bold rounded-full uppercase tracking-wider">Active Route</span>
-                <h2 className="text-xl font-extrabold text-primary-container tracking-tight">공과대학 정문 권역</h2>
-              </div>
-              <div className="text-right">
-                <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Est. Arrival</p>
-                <p className="text-lg font-bold text-primary-container">08:45 AM</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-4 py-2">
+          {/* 경로 정보 — 실제 데이터 */}
+          <div className="bg-white/90 backdrop-blur-md p-5 rounded-xl shadow-lg space-y-3">
+            <div className="flex items-center gap-4">
               <div className="flex flex-col items-center gap-1">
                 <div className="w-2 h-2 rounded-full bg-primary-container"></div>
                 <div className="w-0.5 h-8 bg-slate-200"></div>
@@ -47,27 +61,54 @@ export function DriverActiveScreen() {
               </div>
               <div className="flex-1 space-y-4">
                 <div>
-                  <p className="text-[10px] font-bold text-on-surface-variant uppercase">Departure</p>
-                  <p className="font-semibold text-on-surface">도안동 트리풀시티</p>
+                  <p className="text-[10px] font-bold text-on-surface-variant uppercase">출발</p>
+                  <p className="font-semibold text-on-surface">{driverSource || '출발지'}</p>
                 </div>
                 <div>
-                  <p className="text-[10px] font-bold text-on-surface-variant uppercase">Destination</p>
-                  <p className="font-semibold text-on-surface">공과대학 1호관</p>
+                  <p className="text-[10px] font-bold text-on-surface-variant uppercase">도착</p>
+                  <p className="font-semibold text-on-surface">{driverDest || '도착지'}</p>
                 </div>
               </div>
             </div>
           </div>
-        </div>
-      </div>
 
-      <div className="p-6 bg-white/80 backdrop-blur-xl border-t border-slate-100">
-        <button
-          onClick={() => setState('DRIVER_MATCHED')}
-          className="w-full h-16 bg-blue-600 text-white rounded-xl shadow-lg flex items-center justify-center gap-3 active:scale-95 transition-all font-bold"
-        >
-          <Search className="w-5 h-5" />
-          (테스트) 탑승자 매칭 시뮬레이션
-        </button>
+          {/* 탑승 신청 목록 */}
+          {pendingRides.length > 0 && (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Bell className="w-4 h-4 text-orange-500" />
+                <p className="text-sm font-bold text-on-surface">탑승 신청 {pendingRides.length}건</p>
+              </div>
+              {pendingRides.map(ride => (
+                <div key={ride.id} className="bg-white/95 backdrop-blur-md p-4 rounded-xl shadow-lg border border-orange-200">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-10 h-10 rounded-full bg-primary-container/10 flex items-center justify-center">
+                      <UserCheck className="w-5 h-5 text-primary-container" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-bold text-on-surface">{ride.passengerName}</p>
+                      <p className="text-xs text-on-surface-variant">{ride.passenger?.department || ''}</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleReject(ride.id!)}
+                      className="flex-1 bg-slate-100 text-slate-600 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-1"
+                    >
+                      <X className="w-4 h-4" /> 거절
+                    </button>
+                    <button
+                      onClick={() => handleAccept(ride.id!)}
+                      className="flex-1 bg-[#2E7D32] text-white py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-1"
+                    >
+                      <Check className="w-4 h-4" /> 수락
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </motion.div>
   );
