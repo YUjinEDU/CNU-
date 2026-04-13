@@ -1,5 +1,5 @@
-import React from 'react';
 import { AnimatePresence } from 'motion/react';
+import { ErrorBoundary } from 'react-error-boundary';
 import { AppProvider, useApp } from './contexts/AppContext';
 import { TopAppBar } from './components/layout/TopAppBar';
 import { BottomNav } from './components/layout/BottomNav';
@@ -19,34 +19,16 @@ import { PassengerMatchedScreen } from './screens/passenger/PassengerMatchedScre
 import { PassengerEnRouteScreen } from './screens/passenger/PassengerEnRouteScreen';
 import { PassengerInTransitScreen } from './screens/passenger/PassengerInTransitScreen';
 
-// 화이트 스크린 방지 Error Boundary
-interface EBProps { children: React.ReactNode }
-interface EBState { error: Error | null }
-
-class ErrorBoundary extends React.Component<EBProps, EBState> {
-  state: EBState = { error: null };
-
-  static getDerivedStateFromError(error: Error): EBState {
-    return { error };
-  }
-
-  render() {
-    if (this.state.error) {
-      return (
-        <div className="min-h-screen flex flex-col items-center justify-center bg-red-50 px-6 text-center">
-          <p className="text-2xl font-bold text-red-600 mb-2">오류가 발생했습니다</p>
-          <p className="text-sm text-red-500 mb-4">{this.state.error.message}</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="bg-red-600 text-white px-6 py-3 rounded-xl font-bold"
-          >
-            새로고침
-          </button>
-        </div>
-      );
-    }
-    return this.props.children;
-  }
+function ErrorFallback({ error }: { error: Error }) {
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center bg-red-50 px-6 text-center">
+      <p className="text-2xl font-bold text-red-600 mb-2">오류가 발생했습니다</p>
+      <p className="text-sm text-red-500 mb-4">{error.message}</p>
+      <button onClick={() => window.location.reload()} className="bg-red-600 text-white px-6 py-3 rounded-xl font-bold">
+        새로고침
+      </button>
+    </div>
+  );
 }
 
 function AppContent() {
@@ -93,7 +75,7 @@ function AppContent() {
 
 export default function App() {
   return (
-    <ErrorBoundary>
+    <ErrorBoundary FallbackComponent={ErrorFallback}>
       <AppProvider>
         <AppContent />
       </AppProvider>
