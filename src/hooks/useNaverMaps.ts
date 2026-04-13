@@ -1,32 +1,25 @@
 import { useState, useEffect } from 'react';
 
-let loadResult: 'pending' | 'ok' | 'auth-fail' = 'pending';
+let loadResult: 'pending' | 'ok' | 'fail' = 'pending';
+let authFailed = false;
 
-function loadNaverMapsScript(clientId: string): Promise<'ok' | 'auth-fail'> {
-  if (loadResult !== 'pending') return Promise.resolve(loadResult);
+// SDK의 인증 실패 에러를 글로벌 에러 핸들러로 캐치
+if (typeof window !== 'undefined') {
+  window.addEventListener('error', (e) => {
+    if (e.filename?.includes('maps.js') || e.message?.includes('capitalize') || e.message?.includes('forEach')) {
+      e.preventDefault(); // 콘솔 에러 억제
+      authFailed = true;
+    }
+  });
+}
+
+function loadScript(clientId: string): Promise<boolean> {
+  if (loadResult !== 'pending') return Promise.resolve(loadResult === 'ok');
 
   return new Promise((resolve) => {
-    // SDK 인증 실패 메시지를 콘솔에서 가로채기
-    const origWarn = console.warn;
-    const origError = console.error;
-    let authFailed = false;
-
-    const checkAuth = (...args: unknown[]) => {
-      const msg = args.join(' ');
-      if (msg.includes('인증이 실패') || msg.includes('Authentication Failed')) {
-        authFailed = true;
-      }
-    };
-
-    // 네이버 SDK는 console.warn 또는 콘솔에 직접 출력
-    console.warn = (...args) => { checkAuth(...args); origWarn.apply(console, args); };
-    console.error = (...args) => { checkAuth(...args); origError.apply(console, args); };
-
-    if (typeof naver !== 'undefined' && naver.maps) {
-      console.warn = origWarn;
-      console.error = origError;
+    if (typeof naver !== 'undefined' && naver.maps?.Map && !authFailed) {
       loadResult = 'ok';
-      resolve('ok');
+      resolve(true);
       return;
     }
 
@@ -34,19 +27,20 @@ function loadNaverMapsScript(clientId: string): Promise<'ok' | 'auth-fail'> {
     script.src = `https://oapi.map.naver.com/openapi/v3/maps.js?ncpClientId=${clientId}`;
     script.async = true;
     script.onload = () => {
-      // 인증 실패 감지까지 1초 대기
+      // 2초 대기해서 인증 실패 에러가 발생하는지 확인
       setTimeout(() => {
-        console.warn = origWarn;
-        console.error = origError;
-        loadResult = authFailed ? 'auth-fail' : 'ok';
-        resolve(loadResult);
-      }, 1000);
+        if (authFailed) {
+          loadResult = 'fail';
+          resolve(false);
+        } else {
+          loadResult = 'ok';
+          resolve(true);
+        }
+      }, 2000);
     };
     script.onerror = () => {
-      console.warn = origWarn;
-      console.error = origError;
-      loadResult = 'auth-fail';
-      resolve('auth-fail');
+      loadResult = 'fail';
+      resolve(false);
     };
     document.head.appendChild(script);
   });
@@ -62,12 +56,12 @@ export function useNaverMaps() {
       setError('VITE_NAVER_CLIENT_ID 미설정');
       return;
     }
-    loadNaverMapsScript(clientId).then((result) => {
-      if (result === 'ok') {
-        setIsLoaded(true);
-      } else {
-        setError('네이버 지도 인증 실패 — NCP URL 반영까지 최대 10분 소요');
-      }
+    if (loadResult === 'ok') { setIsLoaded(true); return; }
+    if (loadResult === 'fail') { setError('네이버 지도 인증 실패'); return; }
+
+    loadScript(clientId).then((ok) => {
+      if (ok) setIsLoaded(true);
+      else setError('네이버 지도 인증 실패 — NCP 콘솔에서 Web URL 확인 (반영 최대 10분)');
     });
   }, [clientId]);
 
