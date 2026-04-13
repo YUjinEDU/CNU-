@@ -1,10 +1,11 @@
 import { db } from '../firebase';
 import {
   collection, doc, getDoc, getDocs, setDoc, addDoc, updateDoc,
-  query, where, onSnapshot,
+  query, where, onSnapshot, runTransaction, writeBatch, increment,
+  orderBy, limit,
 } from 'firebase/firestore';
 import type { Unsubscribe } from 'firebase/firestore';
-import { User, Route, Ride, Coordinate, LiveLocation } from '../types';
+import type { User, Route, Ride, Coordinate, LiveLocation } from '../types';
 
 // ── Users ──
 
@@ -131,4 +132,117 @@ export function removeLiveLocation(uid: string): void {
   );
   delete locations[uid];
   localStorage.setItem('cnu-locations', JSON.stringify(locations));
+}
+
+// ── Matching v2 ──
+
+export async function confirmRide(rideId: string, role: 'driver' | 'passenger'): Promise<'confirming' | 'confirmed'> {
+  return await runTransaction(db, async (transaction) => {
+    const rideRef = doc(db, 'rides', rideId);
+    const rideSnap = await transaction.get(rideRef);
+    if (!rideSnap.exists()) throw new Error('Ride not found');
+    const ride = rideSnap.data();
+
+    const updateData: Record<string, unknown> = {};
+    if (role === 'driver') {
+      updateData.driverConfirmed = true;
+    } else {
+      updateData.passengerConfirmed = true;
+    }
+
+    const otherConfirmed = role === 'driver' ? ride.passengerConfirmed : ride.driverConfirmed;
+    const newStatus = otherConfirmed ? 'confirmed' : 'confirming';
+    updateData.status = newStatus;
+    transaction.update(rideRef, updateData);
+    return newStatus as 'confirming' | 'confirmed';
+  });
+}
+
+export async function completeRide(rideId: string, driverId: string, passengerId: string): Promise<void> {
+  const batch = writeBatch(db);
+  batch.update(doc(db, 'rides', rideId), {
+    status: 'completed',
+    completedAt: new Date().toISOString(),
+  });
+  batch.update(doc(db, 'users', driverId), {
+    'stats.totalRides': increment(1),
+    'stats.driveCount': increment(1),
+  });
+  batch.update(doc(db, 'users', passengerId), {
+    'stats.totalRides': increment(1),
+    'stats.rideCount': increment(1),
+  });
+  await batch.commit();
+}
+
+export async function cancelRide(
+  rideId: string,
+  cancelledBy: 'driver' | 'passenger',
+  cancellerUid: string
+): Promise<void> {
+  const batch = writeBatch(db);
+  batch.update(doc(db, 'rides', rideId), {
+    status: 'cancelled',
+    cancelledBy,
+  });
+  batch.update(doc(db, 'users', cancellerUid), {
+    'stats.cancelCount': increment(1),
+  });
+  await batch.commit();
+}
+
+export async function rejectRide(rideId: string): Promise<void> {
+  await updateDoc(doc(db, 'rides', rideId), { status: 'rejected' });
+}
+
+export async function acceptRide(rideId: string, routeId: string): Promise<void> {
+  await runTransaction(db, async (transaction) => {
+    const routeRef = doc(db, 'routes', routeId);
+    const routeSnap = await transaction.get(routeRef);
+    if (!routeSnap.exists()) throw new Error('Route not found');
+    const route = routeSnap.data();
+    if ((route.availableSeats ?? 0) <= 0) throw new Error('좌석이 없습니다');
+
+    transaction.update(doc(db, 'rides', rideId), { status: 'accepted' });
+    transaction.update(routeRef, { availableSeats: (route.availableSeats ?? 1) - 1 });
+  });
+}
+
+export async function getRideHistory(uid: string): Promise<Ride[]> {
+  const asDriver = query(
+    collection(db, 'rides'),
+    where('driverId', '==', uid),
+    orderBy('createdAt', 'desc'),
+    limit(20)
+  );
+  const asPassenger = query(
+    collection(db, 'rides'),
+    where('passengerId', '==', uid),
+    orderBy('createdAt', 'desc'),
+    limit(20)
+  );
+  const [driverSnap, passengerSnap] = await Promise.all([
+    getDocs(asDriver),
+    getDocs(asPassenger),
+  ]);
+  const rides = [
+    ...driverSnap.docs.map(d => ({ ...d.data(), id: d.id } as Ride)),
+    ...passengerSnap.docs.map(d => ({ ...d.data(), id: d.id } as Ride)),
+  ];
+  const unique = [...new Map(rides.map(r => [r.id, r])).values()];
+  return unique.sort((a, b) => (b.createdAt > a.createdAt ? 1 : -1));
+}
+
+export async function hasActiveRide(passengerId: string): Promise<boolean> {
+  const activeStatuses = ['pending', 'accepted', 'confirming', 'confirmed'];
+  for (const status of activeStatuses) {
+    const q = query(
+      collection(db, 'rides'),
+      where('passengerId', '==', passengerId),
+      where('status', '==', status)
+    );
+    const snap = await getDocs(q);
+    if (!snap.empty) return true;
+  }
+  return false;
 }
