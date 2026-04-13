@@ -1,17 +1,23 @@
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { CheckCircle, Phone, MapPin, Clock, Navigation } from 'lucide-react';
 import { motion } from 'motion/react';
 import { findClosestPointOnRoute } from '../../lib/geoUtils';
+import { reverseGeocode } from '../../lib/naverApi';
 import { useApp } from '../../contexts/AppContext';
 
 export function DriverMatchedScreen() {
   const { setState, driverRoute } = useApp();
   const passengerSearchCenter = { lat: 36.355, lng: 127.345 };
+  const [pickupAddress, setPickupAddress] = useState('픽업 위치 확인 중...');
 
   const calculatedPickup = useMemo(() => {
     const routeToUse = driverRoute.length > 0 ? driverRoute : [];
     return findClosestPointOnRoute(routeToUse, passengerSearchCenter);
   }, [driverRoute]);
+
+  useEffect(() => {
+    reverseGeocode(calculatedPickup).then(setPickupAddress);
+  }, [calculatedPickup]);
 
   return (
     <motion.div
@@ -47,8 +53,8 @@ export function DriverMatchedScreen() {
           <div className="flex items-start gap-3">
             <MapPin className="w-5 h-5 text-primary-container mt-0.5" />
             <div>
-              <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">계산된 픽업 좌표</p>
-              <p className="font-semibold text-on-surface">{calculatedPickup.lat.toFixed(4)}, {calculatedPickup.lng.toFixed(4)}</p>
+              <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">픽업 장소</p>
+              <p className="font-semibold text-on-surface">{pickupAddress}</p>
             </div>
           </div>
           <div className="flex items-start gap-3">

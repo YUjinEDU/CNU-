@@ -8,7 +8,7 @@ import { MapComponent } from '../../components/MapComponent';
 import { useApp } from '../../contexts/AppContext';
 
 export function DriverInTransitScreen() {
-  const { user, setState, driverRoute, driverDestCoord } = useApp();
+  const { user, setState, driverRoute, driverDestCoord, localUid } = useApp();
   const { position, heading, speed, startTracking, stopTracking } = useGeolocation();
 
   const destination = driverDestCoord || { lat: 36.36, lng: 127.36 };
@@ -25,7 +25,7 @@ export function DriverInTransitScreen() {
     const now = Date.now();
     if (now - lastUpdateRef.current < 5000) return;
     lastUpdateRef.current = now;
-    updateLocation(user.uid, position, heading, speed);
+    updateLocation(localUid, position, heading, speed);
   }, [position, user, heading, speed]);
 
   // Auto-detect destination arrival
@@ -37,7 +37,7 @@ export function DriverInTransitScreen() {
   }, [position, destination]);
 
   const handleComplete = async () => {
-    if (user) await removeLocation(user.uid);
+    await removeLocation(localUid);
     setState('HOME');
   };
 

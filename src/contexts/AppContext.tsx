@@ -1,8 +1,17 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { AppState, User, Route, Coordinate, SavedAddress } from '../types';
-import { auth, db } from '../firebase';
-import { onAuthStateChanged } from 'firebase/auth';
-import { doc, getDoc, collection, onSnapshot, query, where } from 'firebase/firestore';
+import { AppState, User, Route, Coordinate } from '../types';
+import { getUser, getActiveRoutes, seedTestData } from '../lib/localDb';
+
+// 로컬 UID
+function getLocalUid(): string {
+  const KEY = 'cnu-carpool-uid';
+  let uid = localStorage.getItem(KEY);
+  if (!uid) {
+    uid = `user-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+    localStorage.setItem(KEY, uid);
+  }
+  return uid;
+}
 
 interface AppContextType {
   state: AppState;
@@ -10,6 +19,7 @@ interface AppContextType {
   user: User | null;
   setUser: (user: User | null) => void;
   isAuthReady: boolean;
+  localUid: string;
   walkingRadius: number;
   setWalkingRadius: (radius: number) => void;
   selectedRoute: Route | null;
@@ -17,6 +27,7 @@ interface AppContextType {
   pickupPoint: Coordinate | null;
   setPickupPoint: (point: Coordinate | null) => void;
   availableRoutes: Route[];
+  refreshRoutes: () => void;
   driverSource: string;
   setDriverSource: (source: string) => void;
   driverDest: string;
@@ -41,6 +52,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<AppState>('LOGIN');
   const [user, setUser] = useState<User | null>(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
+  const localUid = getLocalUid();
   const [walkingRadius, setWalkingRadius] = useState(10);
   const [selectedRoute, setSelectedRoute] = useState<Route | null>(null);
   const [pickupPoint, setPickupPoint] = useState<Coordinate | null>(null);
@@ -51,47 +63,32 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [driverSourceCoord, setDriverSourceCoord] = useState<Coordinate | null>(null);
   const [driverDestCoord, setDriverDestCoord] = useState<Coordinate | null>(null);
 
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
-        const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
-        if (userDoc.exists()) {
-          setUser(userDoc.data() as User);
-          setState('HOME');
-        } else {
-          setState('SIGNUP');
-        }
-      } else {
-        setUser(null);
-        setState('LOGIN');
-      }
-      setIsAuthReady(true);
-    });
-    return () => unsubscribe();
-  }, []);
+  const refreshRoutes = () => setAvailableRoutes(getActiveRoutes());
 
+  // 초기화: 테스트 데이터 시드 + 기존 사용자 확인
   useEffect(() => {
-    if (!isAuthReady || !user) return;
-    const q = query(collection(db, 'routes'), where('status', '==', 'active'));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const routesData = snapshot.docs.map(d => ({
-        ...d.data(),
-        id: d.id
-      })) as Route[];
-      setAvailableRoutes(routesData);
-    });
-    return () => unsubscribe();
-  }, [isAuthReady, user]);
+    seedTestData();
+    const existingUser = getUser(localUid);
+    if (existingUser) {
+      setUser(existingUser);
+      setState('HOME');
+    } else {
+      setState('SIGNUP');
+    }
+    setAvailableRoutes(getActiveRoutes());
+    setIsAuthReady(true);
+  }, [localUid]);
 
   return (
     <AppContext.Provider value={{
       state, setState,
       user, setUser,
       isAuthReady,
+      localUid,
       walkingRadius, setWalkingRadius,
       selectedRoute, setSelectedRoute,
       pickupPoint, setPickupPoint,
-      availableRoutes,
+      availableRoutes, refreshRoutes,
       driverSource, setDriverSource,
       driverDest, setDriverDest,
       driverRoute, setDriverRoute,

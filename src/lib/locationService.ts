@@ -1,50 +1,37 @@
-import { db } from '../firebase';
-import { doc, setDoc, onSnapshot, serverTimestamp, deleteDoc } from 'firebase/firestore';
 import { Coordinate, LiveLocation } from '../types';
-
-const LOCATIONS_COLLECTION = 'liveLocations';
+import { updateLiveLocation, getLiveLocation, removeLiveLocation } from './localDb';
 
 /**
- * 현재 사용자의 실시간 위치를 Firestore에 업데이트.
- * 운전자가 이동 중일 때 주기적으로 호출.
+ * 현재 사용자의 실시간 위치를 localStorage에 업데이트.
  */
-export async function updateLocation(
+export function updateLocation(
   uid: string,
   position: Coordinate,
   heading?: number | null,
   speed?: number | null
-): Promise<void> {
-  await setDoc(doc(db, LOCATIONS_COLLECTION, uid), {
-    uid,
-    lat: position.lat,
-    lng: position.lng,
-    heading: heading ?? null,
-    speed: speed ?? null,
-    updatedAt: serverTimestamp(),
-  });
+): void {
+  updateLiveLocation(uid, position, heading, speed);
 }
 
 /**
- * 특정 사용자의 실시간 위치를 구독.
- * 탑승자가 운전자 위치를 실시간으로 확인할 때 사용.
- * @returns unsubscribe 함수
+ * 특정 사용자의 실시간 위치를 가져오기.
+ * (localStorage 기반이므로 같은 브라우저에서만 동작)
  */
 export function subscribeToLocation(
   uid: string,
   onUpdate: (location: LiveLocation | null) => void
 ): () => void {
-  return onSnapshot(doc(db, LOCATIONS_COLLECTION, uid), (snapshot) => {
-    if (snapshot.exists()) {
-      onUpdate(snapshot.data() as LiveLocation);
-    } else {
-      onUpdate(null);
-    }
-  });
+  // 폴링으로 위치 업데이트 확인 (1초 간격)
+  const interval = setInterval(() => {
+    onUpdate(getLiveLocation(uid));
+  }, 1000);
+
+  return () => clearInterval(interval);
 }
 
 /**
- * 위치 공유 종료 시 Firestore에서 위치 데이터 삭제.
+ * 위치 공유 종료 시 localStorage에서 위치 데이터 삭제.
  */
-export async function removeLocation(uid: string): Promise<void> {
-  await deleteDoc(doc(db, LOCATIONS_COLLECTION, uid));
+export function removeLocation(uid: string): void {
+  removeLiveLocation(uid);
 }

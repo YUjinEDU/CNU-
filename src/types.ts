@@ -19,6 +19,7 @@ export interface Vehicle {
 export interface User {
   uid: string;
   name: string;
+  employeeNumber?: string;  // 교번
   department: string;
   role: 'driver' | 'passenger' | 'both';
   isVerified: boolean;

@@ -61,17 +61,23 @@ export function ProfileScreen() {
 
       <div className="space-y-4">
         <h4 className="text-sm font-bold text-on-surface-variant uppercase tracking-widest ml-1">차량 정보</h4>
-        <div className="bg-surface-container-lowest rounded-xl p-5 shadow-sm flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="bg-primary-container/10 p-3 rounded-full">
-              <Car className="w-6 h-6 text-primary-container" />
-            </div>
-            <div>
-              <p className="font-bold text-on-surface">12가 3456</p>
-              <p className="text-xs text-on-surface-variant">그랜저 하이브리드 (화이트)</p>
+        {user?.vehicle ? (
+          <div className="bg-surface-container-lowest rounded-xl p-5 shadow-sm flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="bg-primary-container/10 p-3 rounded-full">
+                <Car className="w-6 h-6 text-primary-container" />
+              </div>
+              <div>
+                <p className="font-bold text-on-surface">{user.vehicle.plateNumber}</p>
+                <p className="text-xs text-on-surface-variant">{user.vehicle.model} ({user.vehicle.color})</p>
+              </div>
             </div>
           </div>
-        </div>
+        ) : (
+          <div className="bg-surface-container-lowest rounded-xl p-5 shadow-sm text-center">
+            <p className="text-on-surface-variant text-sm">등록된 차량이 없습니다.</p>
+          </div>
+        )}
       </div>
 
       <div className="space-y-4">

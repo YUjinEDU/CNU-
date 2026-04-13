@@ -45,6 +45,7 @@ export function isRouteIntersectingCircle(path: Coordinate[], center: Coordinate
  * Find the closest point on a route to a given point
  */
 export function findClosestPointOnRoute(path: Coordinate[], point: Coordinate): Coordinate {
+  if (path.length === 0) return point; // 빈 경로면 입력 좌표를 그대로 반환
   let minDoc = Infinity;
   let closest = path[0];
   

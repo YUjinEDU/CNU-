@@ -1,7 +1,8 @@
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { BadgeCheck, MapPin, ArrowRight } from 'lucide-react';
 import { motion } from 'motion/react';
 import { findClosestPointOnRoute } from '../../lib/geoUtils';
+import { reverseGeocode } from '../../lib/naverApi';
 import { MapComponent } from '../../components/MapComponent';
 import { useApp } from '../../contexts/AppContext';
 
@@ -9,6 +10,7 @@ export function PassengerMatchedScreen() {
   const { setState, walkingRadius, pickupPoint, selectedRoute } = useApp();
   const passengerSearchCenter = pickupPoint || { lat: 36.355, lng: 127.345 };
   const passengerRadiusMeters = walkingRadius * 80;
+  const [pickupAddress, setPickupAddress] = useState('픽업 위치 확인 중...');
 
   const routePath = useMemo(() => {
     return selectedRoute?.path ? JSON.parse(selectedRoute.path) : [];
@@ -17,6 +19,10 @@ export function PassengerMatchedScreen() {
   const calculatedPickup = useMemo(() => {
     return findClosestPointOnRoute(routePath, passengerSearchCenter);
   }, [routePath, passengerSearchCenter]);
+
+  useEffect(() => {
+    reverseGeocode(calculatedPickup).then(setPickupAddress);
+  }, [calculatedPickup]);
 
   return (
     <motion.div
@@ -59,8 +65,8 @@ export function PassengerMatchedScreen() {
                 <MapPin className="w-6 h-6" />
               </div>
               <div>
-                <p className="text-[10px] text-on-surface-variant font-bold uppercase">계산된 픽업 좌표</p>
-                <p className="text-sm font-bold text-primary-container">{calculatedPickup.lat.toFixed(4)}, {calculatedPickup.lng.toFixed(4)}</p>
+                <p className="text-[10px] text-on-surface-variant font-bold uppercase">픽업 장소</p>
+                <p className="text-sm font-bold text-primary-container">{pickupAddress}</p>
               </div>
             </div>
           </div>

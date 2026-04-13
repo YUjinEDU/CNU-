@@ -4,13 +4,12 @@ import { motion } from 'motion/react';
 import { Route } from '../../types';
 import { isRouteIntersectingCircle } from '../../lib/geoUtils';
 import { MapComponent } from '../../components/MapComponent';
-import { db } from '../../firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { createRoute } from '../../lib/localDb';
 import { useApp } from '../../contexts/AppContext';
 
 export function DriverSetupScreen() {
   const {
-    user, setState,
+    user, setState, localUid, refreshRoutes,
     driverSource, setDriverSource, driverDest, setDriverDest,
     driverRoute, setDriverRoute,
     driverSourceCoord, setDriverSourceCoord, driverDestCoord, setDriverDestCoord,
@@ -48,15 +47,15 @@ export function DriverSetupScreen() {
 
   const departureTimeStr = `${String(departureHour).padStart(2, '0')}:${String(departureMinute).padStart(2, '0')}`;
 
-  const handleStartRoute = async () => {
+  const handleStartRoute = () => {
     if (!driverSource || !driverDest || driverRoute.length === 0) {
       alert('출발지, 도착지를 선택하고 경로가 계산될 때까지 기다려주세요.');
       return;
     }
     if (!user) return;
 
-    const newRoute: Route = {
-      driverId: user.uid,
+    createRoute({
+      driverId: localUid,
       driverName: user.name,
       vehicle: user.vehicle,
       sourceName: driverSource,
@@ -67,16 +66,10 @@ export function DriverSetupScreen() {
       status: 'active',
       availableSeats,
       departureTime: departureTimeStr,
-      createdAt: serverTimestamp(),
-    };
+    });
 
-    try {
-      await addDoc(collection(db, 'routes'), newRoute);
-      setState('DRIVER_ACTIVE');
-    } catch (error) {
-      console.error("Error creating route:", error);
-      alert("경로 등록 중 오류가 발생했습니다.");
-    }
+    refreshRoutes();
+    setState('DRIVER_ACTIVE');
   };
 
   return (

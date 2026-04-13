@@ -9,7 +9,7 @@ import { MapComponent } from '../../components/MapComponent';
 import { useApp } from '../../contexts/AppContext';
 
 export function DriverEnRouteScreen() {
-  const { user, setState, driverRoute } = useApp();
+  const { user, setState, driverRoute, localUid } = useApp();
   const { position, heading, speed, startTracking, stopTracking, isTracking } = useGeolocation();
   const passengerSearchCenter = { lat: 36.355, lng: 127.345 };
 
@@ -31,7 +31,7 @@ export function DriverEnRouteScreen() {
     const now = Date.now();
     if (now - lastUpdateRef.current < 5000) return;
     lastUpdateRef.current = now;
-    updateLocation(user.uid, position, heading, speed);
+    updateLocation(localUid, position, heading, speed);
   }, [position, user, heading, speed]);
 
   // Auto-detect arrival at pickup

@@ -2,7 +2,6 @@ import { AnimatePresence } from 'motion/react';
 import { AppProvider, useApp } from './contexts/AppContext';
 import { TopAppBar } from './components/layout/TopAppBar';
 import { BottomNav } from './components/layout/BottomNav';
-import { LoginScreen } from './screens/LoginScreen';
 import { SignupScreen } from './screens/SignupScreen';
 import { HomeScreen } from './screens/HomeScreen';
 import { ProfileScreen } from './screens/ProfileScreen';
@@ -30,7 +29,7 @@ function AppContent() {
     );
   }
 
-  const showChrome = state !== 'SIGNUP' && state !== 'LOGIN';
+  const showChrome = state !== 'SIGNUP';
 
   return (
     <div className="min-h-screen bg-surface flex flex-col font-sans">
@@ -38,8 +37,7 @@ function AppContent() {
 
       <main className="flex-1 overflow-y-auto">
         <AnimatePresence mode="wait">
-          {state === 'LOGIN' && <LoginScreen key="login" />}
-          {state === 'SIGNUP' && <SignupScreen key="signup" />}
+          {(state === 'LOGIN' || state === 'SIGNUP') && <SignupScreen key="signup" />}
           {state === 'HOME' && <HomeScreen key="home" />}
           {state === 'DRIVER_SETUP' && <DriverSetupScreen key="driver-setup" />}
           {state === 'DRIVER_ACTIVE' && <DriverActiveScreen key="driver-active" />}

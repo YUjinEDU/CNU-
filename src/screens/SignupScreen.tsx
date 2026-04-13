@@ -1,50 +1,64 @@
 import { useState } from 'react';
-import { School, Plus } from 'lucide-react';
+import { School, Car, Home, Building2, Hash } from 'lucide-react';
 import { motion } from 'motion/react';
-import { User, SavedAddress } from '../types';
-import { AddressAutocomplete } from '../components/AddressAutocomplete';
-import { auth, db } from '../firebase';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { User, SavedAddress, Vehicle } from '../types';
+// createdAt을 로컬에서 생성
+import { AddressSearch } from '../components/AddressSearch';
+import { CampusBuildingSelector } from '../components/CampusBuildingSelector';
+import { saveUser } from '../lib/localDb';
 import { useApp } from '../contexts/AppContext';
 
 export function SignupScreen() {
-  const { setUser, setState } = useApp();
-  const [name, setName] = useState(auth.currentUser?.displayName || '');
+  const { setUser, setState, localUid } = useApp();
+  const [name, setName] = useState('');
+  const [employeeNumber, setEmployeeNumber] = useState('');
   const [dept, setDept] = useState('');
-  const [role, setRole] = useState<'driver' | 'passenger' | 'both'>('passenger');
-  const [addresses, setAddresses] = useState<SavedAddress[]>([{ name: '', lat: 0, lng: 0 }]);
+  const [role, setRole] = useState<'driver' | 'passenger' | 'both'>('both');
+  const [homeAddr, setHomeAddr] = useState<SavedAddress>({ name: '', lat: 0, lng: 0 });
+  const [workAddr, setWorkAddr] = useState<SavedAddress>({ name: '', lat: 0, lng: 0 });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleAddAddress = () => setAddresses([...addresses, { name: '', lat: 0, lng: 0 }]);
-  const handleAddressChange = (idx: number, place: { name: string; lat: number; lng: number }) => {
-    const newAddrs = [...addresses];
-    newAddrs[idx] = place;
-    setAddresses(newAddrs);
-  };
+  // 차량 정보
+  const [plateNumber, setPlateNumber] = useState('');
+  const [carModel, setCarModel] = useState('');
+  const [carColor, setCarColor] = useState('');
 
   const handleSignup = async () => {
-    if (!name || !dept || addresses.some(a => !a.name)) {
-      alert('모든 필드를 입력해주세요.');
+    if (!name || !dept) {
+      alert('이름과 소속을 입력해주세요.');
       return;
     }
-    if (!auth.currentUser) return;
+    setIsSubmitting(true);
+
+    const addresses: SavedAddress[] = [];
+    if (homeAddr.name) addresses.push(homeAddr);
+    if (workAddr.name) addresses.push(workAddr);
+
+    const vehicle: Vehicle | undefined = plateNumber
+      ? { plateNumber, model: carModel, color: carColor, seatCapacity: 4 }
+      : undefined;
 
     const newUser: User = {
-      uid: auth.currentUser.uid,
+      uid: localUid,
       name,
+      employeeNumber: employeeNumber || undefined,
       department: dept,
       role,
       isVerified: true,
-      savedAddresses: addresses,
-      createdAt: serverTimestamp()
+      savedAddresses: addresses.length > 0 ? addresses : undefined,
+      vehicle,
+      createdAt: new Date().toISOString()
     };
 
     try {
-      await setDoc(doc(db, 'users', auth.currentUser.uid), newUser);
+      saveUser(newUser);
       setUser(newUser);
       setState('HOME');
     } catch (error) {
       console.error("Error saving user:", error);
-      alert("회원가입 중 오류가 발생했습니다.");
+      alert("가입 중 오류가 발생했습니다.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -52,17 +66,17 @@ export function SignupScreen() {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="px-6 py-12 space-y-8"
+      className="px-6 py-12 space-y-8 pb-32"
     >
       <div className="text-center space-y-2">
         <School className="w-16 h-16 text-primary-container mx-auto" />
         <h2 className="text-3xl font-black text-primary-container tracking-tight">CNU 카풀 시작하기</h2>
-        <p className="text-on-surface-variant">교직원 인증을 위해 정보를 입력해주세요.</p>
+        <p className="text-on-surface-variant">정보를 입력하면 바로 시작할 수 있어요.</p>
       </div>
 
       <div className="space-y-6">
         <div className="space-y-2">
-          <label className="text-xs font-bold text-on-surface-variant uppercase tracking-widest ml-1">이름</label>
+          <label className="text-xs font-bold text-on-surface-variant uppercase tracking-widest ml-1">이름 *</label>
           <input
             type="text"
             value={name}
@@ -73,64 +87,122 @@ export function SignupScreen() {
         </div>
 
         <div className="space-y-2">
-          <label className="text-xs font-bold text-on-surface-variant uppercase tracking-widest ml-1">소속 부서/학과</label>
+          <label className="text-xs font-bold text-on-surface-variant uppercase tracking-widest ml-1">교번 *</label>
+          <div className="relative flex items-center">
+            <Hash className="absolute left-4 w-5 h-5 text-primary-container" />
+            <input
+              type="text"
+              value={employeeNumber}
+              onChange={(e) => setEmployeeNumber(e.target.value)}
+              className="w-full pl-12 pr-4 py-4 bg-surface-container-lowest border-none rounded-xl text-on-surface font-semibold shadow-sm focus:ring-2 focus:ring-primary-container"
+              placeholder="예: 2024-12345"
+            />
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-xs font-bold text-on-surface-variant uppercase tracking-widest ml-1">소속 부서/학과 *</label>
           <input
             type="text"
             value={dept}
             onChange={(e) => setDept(e.target.value)}
             className="w-full px-4 py-4 bg-surface-container-lowest border-none rounded-xl text-on-surface font-semibold shadow-sm focus:ring-2 focus:ring-primary-container"
-            placeholder="예: 공과대학 행정실"
+            placeholder="예: 공과대학 컴퓨터공학과"
           />
         </div>
 
         <div className="space-y-2">
           <label className="text-xs font-bold text-on-surface-variant uppercase tracking-widest ml-1">주 이용 목적</label>
           <div className="grid grid-cols-3 gap-2">
-            <button
-              onClick={() => setRole('passenger')}
-              className={`py-3 rounded-xl font-bold text-sm transition-colors ${role === 'passenger' ? 'bg-primary-container text-white' : 'bg-surface-container-lowest text-on-surface-variant'}`}
-            >탑승</button>
-            <button
-              onClick={() => setRole('driver')}
-              className={`py-3 rounded-xl font-bold text-sm transition-colors ${role === 'driver' ? 'bg-primary-container text-white' : 'bg-surface-container-lowest text-on-surface-variant'}`}
-            >운전</button>
-            <button
-              onClick={() => setRole('both')}
-              className={`py-3 rounded-xl font-bold text-sm transition-colors ${role === 'both' ? 'bg-primary-container text-white' : 'bg-surface-container-lowest text-on-surface-variant'}`}
-            >둘 다</button>
+            {(['passenger', 'driver', 'both'] as const).map(r => (
+              <button
+                key={r}
+                onClick={() => setRole(r)}
+                className={`py-3 rounded-xl font-bold text-sm transition-colors ${role === r ? 'bg-primary-container text-white' : 'bg-surface-container-lowest text-on-surface-variant'}`}
+              >
+                {r === 'passenger' ? '탑승' : r === 'driver' ? '운전' : '둘 다'}
+              </button>
+            ))}
           </div>
         </div>
 
-        <div className="space-y-4">
-          <div className="flex justify-between items-center">
-            <label className="text-xs font-bold text-on-surface-variant uppercase tracking-widest ml-1">자주 가는 주소</label>
-            <button
-              onClick={handleAddAddress}
-              className="text-primary-container text-xs font-bold flex items-center gap-1"
-            >
-              <Plus className="w-3 h-3" /> 추가
-            </button>
-          </div>
-          {addresses.map((addr, idx) => (
-            <AddressAutocomplete
-              key={idx}
-              value={addr.name}
-              onChange={(val) => {
-                const newAddrs = [...addresses];
-                newAddrs[idx] = { ...newAddrs[idx], name: val };
-                setAddresses(newAddrs);
-              }}
-              onPlaceSelected={(place) => handleAddressChange(idx, place)}
+        {(role === 'driver' || role === 'both') && (
+          <div className="space-y-4 bg-blue-50/50 p-5 rounded-xl">
+            <div className="flex items-center gap-2 mb-2">
+              <Car className="w-5 h-5 text-primary-container" />
+              <label className="text-xs font-bold text-primary-container uppercase tracking-widest">차량 정보</label>
+            </div>
+            <input
+              type="text"
+              value={plateNumber}
+              onChange={(e) => setPlateNumber(e.target.value)}
+              className="w-full px-4 py-3 bg-white border-none rounded-xl text-on-surface font-semibold shadow-sm focus:ring-2 focus:ring-primary-container"
+              placeholder="차량 번호 (예: 대전 12가 3456)"
             />
-          ))}
+            <div className="grid grid-cols-2 gap-3">
+              <input
+                type="text"
+                value={carModel}
+                onChange={(e) => setCarModel(e.target.value)}
+                className="px-4 py-3 bg-white border-none rounded-xl text-on-surface font-semibold shadow-sm focus:ring-2 focus:ring-primary-container"
+                placeholder="차종 (예: 그랜저)"
+              />
+              <input
+                type="text"
+                value={carColor}
+                onChange={(e) => setCarColor(e.target.value)}
+                className="px-4 py-3 bg-white border-none rounded-xl text-on-surface font-semibold shadow-sm focus:ring-2 focus:ring-primary-container"
+                placeholder="색상 (예: 화이트)"
+              />
+            </div>
+          </div>
+        )}
+
+        <div className="space-y-5">
+          <label className="text-xs font-bold text-on-surface-variant uppercase tracking-widest ml-1">주소 저장</label>
+
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 ml-1">
+              <Home className="w-4 h-4 text-primary-container" />
+              <span className="text-sm font-bold text-on-surface">집</span>
+            </div>
+            <AddressSearch
+              value={homeAddr.name}
+              onAddressSelected={(result) => setHomeAddr({ name: result.name, lat: result.lat, lng: result.lng })}
+              placeholder="집 주소를 검색해주세요"
+            />
+            {homeAddr.lat !== 0 && (
+              <p className="text-[10px] text-green-600 font-medium ml-1">✓ 주소 확인 완료</p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 ml-1">
+              <Building2 className="w-4 h-4 text-primary-container" />
+              <span className="text-sm font-bold text-on-surface">직장 (캠퍼스 건물)</span>
+            </div>
+            <CampusBuildingSelector
+              value={workAddr.name}
+              onBuildingSelected={(building) => setWorkAddr({ name: building.name, lat: building.lat, lng: building.lng })}
+              placeholder="캠퍼스 권역을 선택해주세요"
+            />
+            {workAddr.lat !== 0 && (
+              <p className="text-[10px] text-green-600 font-medium ml-1">✓ {workAddr.name}</p>
+            )}
+          </div>
         </div>
       </div>
 
       <button
         onClick={handleSignup}
-        className="w-full bg-primary-container text-white py-5 rounded-xl font-bold text-lg shadow-lg flex items-center justify-center gap-3 active:scale-95 transition-all"
+        disabled={!name || !dept || isSubmitting}
+        className={`w-full py-5 rounded-xl font-bold text-lg shadow-lg flex items-center justify-center gap-3 transition-all ${
+          name && dept && !isSubmitting
+            ? 'bg-primary-container text-white active:scale-95'
+            : 'bg-slate-300 text-slate-500 cursor-not-allowed'
+        }`}
       >
-        가입 완료 및 시작하기
+        {isSubmitting ? '저장 중...' : '시작하기'}
       </button>
     </motion.div>
   );
