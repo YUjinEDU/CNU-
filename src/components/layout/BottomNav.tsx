@@ -1,8 +1,11 @@
 import { Home as HomeIcon, Car, Users, User as UserIcon, MessageCircle } from 'lucide-react';
 import { useApp } from '../../contexts/AppContext';
+import { getRestrictionMessage } from '../../lib/vehicleUtils';
 
 export function BottomNav() {
   const { state, setState, currentRide, currentRoute, user } = useApp();
+  const plateNumber = user?.vehicle?.plateNumber || '';
+  const restriction = plateNumber ? getRestrictionMessage(plateNumber) : null;
 
   const rideStatus = currentRide?.status;
   const hasActiveRide = rideStatus && !['completed', 'cancelled', 'rejected'].includes(rideStatus);
@@ -15,6 +18,8 @@ export function BottomNav() {
       setState('DRIVER_MATCHED');
     } else if (hasActiveRoute) {
       setState('DRIVER_ACTIVE');
+    } else if (restriction && !restriction.canDrive) {
+      alert(`오늘은 2부제 적용으로 운행이 불가합니다.\n${restriction.description}`);
     } else {
       setState('DRIVER_SETUP');
     }
