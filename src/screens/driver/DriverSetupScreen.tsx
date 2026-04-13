@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Car, MapPin, Building2, ChevronDown, Clock, Minus, Plus } from 'lucide-react';
+import { Car, MapPin, Building2, ChevronDown, Clock, Minus, Plus, Loader2 } from 'lucide-react';
 import { motion } from 'motion/react';
-import { Route } from '../../types';
 import { isRouteIntersectingCircle } from '../../lib/geoUtils';
 import { MapComponent } from '../../components/MapComponent';
 import { createRoute } from '../../lib/localDb';
@@ -18,19 +17,36 @@ export function DriverSetupScreen() {
   const [availableSeats, setAvailableSeats] = useState(user?.vehicle?.seatCapacity ? user.vehicle.seatCapacity - 1 : 3);
   const [departureHour, setDepartureHour] = useState(8);
   const [departureMinute, setDepartureMinute] = useState(30);
+  const [isCalculating, setIsCalculating] = useState(false);
 
   useEffect(() => {
     if (!driverSource && user?.savedAddresses?.[0]) {
       const addr = user.savedAddresses[0];
       setDriverSource(addr.name);
-      setDriverSourceCoord({ lat: addr.lat, lng: addr.lng });
+      if (addr.lat !== 0 && addr.lng !== 0) {
+        setDriverSourceCoord({ lat: addr.lat, lng: addr.lng });
+      }
     }
     if (!driverDest && user?.savedAddresses?.[1]) {
       const addr = user.savedAddresses[1];
       setDriverDest(addr.name);
-      setDriverDestCoord({ lat: addr.lat, lng: addr.lng });
+      if (addr.lat !== 0 && addr.lng !== 0) {
+        setDriverDestCoord({ lat: addr.lat, lng: addr.lng });
+      }
     }
   }, [user]);
+
+  // 좌표 변경 시 경로 계산 시작 표시
+  useEffect(() => {
+    if (driverSourceCoord && driverDestCoord) {
+      setIsCalculating(true);
+    }
+  }, [driverSourceCoord?.lat, driverSourceCoord?.lng, driverDestCoord?.lat, driverDestCoord?.lng]);
+
+  const handleRouteCalculated = (path: typeof driverRoute) => {
+    setDriverRoute(path);
+    setIsCalculating(false);
+  };
 
   const mockPassengers = useMemo(() => {
     const passengers = [
@@ -47,12 +63,10 @@ export function DriverSetupScreen() {
 
   const departureTimeStr = `${String(departureHour).padStart(2, '0')}:${String(departureMinute).padStart(2, '0')}`;
 
+  const canStart = driverSource && driverDest && driverRoute.length > 0 && !isCalculating;
+
   const handleStartRoute = () => {
-    if (!driverSource || !driverDest || driverRoute.length === 0) {
-      alert('출발지, 도착지를 선택하고 경로가 계산될 때까지 기다려주세요.');
-      return;
-    }
-    if (!user) return;
+    if (!canStart || !user) return;
 
     createRoute({
       driverId: localUid,
@@ -86,21 +100,25 @@ export function DriverSetupScreen() {
             <MapComponent
               originCoord={driverSourceCoord ?? undefined}
               destCoord={driverDestCoord ?? undefined}
-              onRouteCalculated={setDriverRoute}
+              onRouteCalculated={handleRouteCalculated}
               polylines={driverRoute.length > 0 ? [driverRoute] : []}
               circles={mockPassengers}
             />
+            {isCalculating && (
+              <div className="absolute inset-0 bg-white/50 flex items-center justify-center">
+                <div className="bg-white/90 px-4 py-2 rounded-full flex items-center gap-2 shadow-lg">
+                  <Loader2 className="w-4 h-4 animate-spin text-primary-container" />
+                  <span className="text-sm font-bold text-primary-container">경로 계산 중...</span>
+                </div>
+              </div>
+            )}
           </div>
-          <div className="flex items-center justify-end gap-3 px-1">
-            <div className="flex items-center gap-1.5">
-              <div className="w-3 h-3 rounded-full bg-green-500/20 border-2 border-green-500"></div>
-              <span className="text-[10px] font-bold text-on-surface-variant">매칭 가능 탑승자</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <div className="w-3 h-3 rounded-full bg-slate-400/20 border-2 border-slate-400"></div>
-              <span className="text-[10px] font-bold text-on-surface-variant">경로 외 탑승자</span>
-            </div>
-          </div>
+          {driverRoute.length > 0 && (
+            <p className="text-[10px] text-green-600 font-medium ml-1">✓ 경로 계산 완료 ({driverRoute.length}개 지점)</p>
+          )}
+          {!driverSourceCoord || !driverDestCoord ? (
+            <p className="text-[10px] text-amber-600 font-medium ml-1">출발지와 도착지를 선택하면 경로가 자동 계산됩니다</p>
+          ) : null}
         </div>
 
         <div className="space-y-4">
@@ -113,7 +131,7 @@ export function DriverSetupScreen() {
                 onChange={(e) => {
                   const addr = user?.savedAddresses?.find(a => a.name === e.target.value);
                   setDriverSource(e.target.value);
-                  if (addr) setDriverSourceCoord({ lat: addr.lat, lng: addr.lng });
+                  if (addr && addr.lat !== 0) setDriverSourceCoord({ lat: addr.lat, lng: addr.lng });
                 }}
                 className="w-full bg-surface-container-lowest border border-transparent rounded-xl pl-12 pr-4 py-4 text-on-surface font-semibold shadow-sm appearance-none outline-none"
               >
@@ -135,7 +153,7 @@ export function DriverSetupScreen() {
                 onChange={(e) => {
                   const addr = user?.savedAddresses?.find(a => a.name === e.target.value);
                   setDriverDest(e.target.value);
-                  if (addr) setDriverDestCoord({ lat: addr.lat, lng: addr.lng });
+                  if (addr && addr.lat !== 0) setDriverDestCoord({ lat: addr.lat, lng: addr.lng });
                 }}
                 className="w-full bg-surface-container-lowest border border-transparent rounded-xl pl-12 pr-4 py-4 text-on-surface font-semibold shadow-sm appearance-none outline-none"
               >
@@ -198,10 +216,18 @@ export function DriverSetupScreen() {
 
       <button
         onClick={handleStartRoute}
-        className="w-full bg-[#2E7D32] text-white py-5 rounded-xl font-bold text-lg shadow-lg flex items-center justify-center gap-3 active:scale-95 transition-all"
+        disabled={!canStart}
+        className={`w-full py-5 rounded-xl font-bold text-lg shadow-lg flex items-center justify-center gap-3 transition-all ${
+          canStart
+            ? 'bg-[#2E7D32] text-white active:scale-95'
+            : 'bg-slate-300 text-slate-500 cursor-not-allowed'
+        }`}
       >
-        <Car className="w-6 h-6 fill-current" />
-        동승자 모집 시작
+        {isCalculating ? (
+          <><Loader2 className="w-6 h-6 animate-spin" /> 경로 계산 중...</>
+        ) : (
+          <><Car className="w-6 h-6 fill-current" /> 동승자 모집 시작</>
+        )}
       </button>
     </motion.div>
   );
