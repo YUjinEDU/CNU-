@@ -239,7 +239,7 @@ export function ChatRoom() {
       )}
 
       {/* 메시지 목록 */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 bg-slate-50">
+      <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4 space-y-3 bg-slate-50">
         {messages.length === 0 && (
           <div className="text-center py-12 text-on-surface-variant">
             <MessageCircle className="w-10 h-10 mx-auto mb-3 opacity-30" />
@@ -284,7 +284,7 @@ export function ChatRoom() {
       </div>
 
       {/* 입력창 */}
-      <div className="px-4 py-4 bg-white border-t border-slate-100">
+      <div className="shrink-0 px-4 py-3 bg-white border-t border-slate-100 safe-area-bottom">
         <div className="flex items-center gap-3">
           <input
             type="text"
