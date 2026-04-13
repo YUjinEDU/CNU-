@@ -152,8 +152,9 @@ export function removeLiveLocation(uid: string): void {
 // ── 테스트 데이터 시드 ──
 
 export function seedTestData(): void {
-  // 이미 데이터가 있으면 스킵
-  if (read<User>(KEYS.users).length > 0) return;
+  // 테스트 유저가 이미 있으면 스킵 (일반 유저와 별개로 체크)
+  const existing = read<User>(KEYS.users);
+  if (existing.some(u => u.uid.startsWith('test-'))) return;
 
   const testUsers: User[] = [
     { uid: 'test-001', name: '김교수', employeeNumber: '2020-00101', department: '공과대학 컴퓨터공학과', role: 'driver', isVerified: true, vehicle: { plateNumber: '대전 12가 3457', model: '그랜저', color: '화이트', seatCapacity: 4 }, savedAddresses: [{ name: '대전 유성구 도안동 트리풀시티', lat: 36.3500, lng: 127.3300 }, { name: '충남대학교 공과대학 권역', lat: 36.3680, lng: 127.3460 }], createdAt: new Date().toISOString() },
