@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { BadgeCheck, MessageCircle, Clock } from 'lucide-react';
+import { BadgeCheck, MessageCircle, Clock, MapPin } from 'lucide-react';
 import { motion } from 'motion/react';
 import { subscribeToRide, cancelRide } from '../../lib/firebaseDb';
 import { useApp } from '../../contexts/AppContext';
@@ -41,12 +41,32 @@ export function PassengerMatchedScreen() {
 
   const showChat = ['accepted', 'confirming', 'confirmed'].includes(rideStatus);
 
+  const [showArrivalPopup, setShowArrivalPopup] = useState(false);
+  const driverArrived = currentRide?.driverArrived;
+  useEffect(() => {
+    if (driverArrived) setShowArrivalPopup(true);
+  }, [driverArrived]);
+
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       className="px-6 py-8 space-y-6 pb-32"
     >
+      {/* 운전자 도착 팝업 */}
+      {showArrivalPopup && (
+        <div className="bg-green-50 border-2 border-green-300 rounded-xl p-4 flex items-center gap-3">
+          <div className="bg-green-500 text-white p-2 rounded-full animate-bounce">
+            <MapPin className="w-5 h-5" />
+          </div>
+          <div className="flex-1">
+            <p className="font-bold text-green-800 text-sm">운전자가 약속 장소에 도착했습니다!</p>
+            <p className="text-xs text-green-600">빠르게 만나러 가주세요</p>
+          </div>
+          <button onClick={() => setShowArrivalPopup(false)} className="text-green-600 font-bold text-xs px-3 py-1.5 bg-green-100 rounded-full">확인</button>
+        </div>
+      )}
+
       <div className="text-center space-y-2 mb-4">
         <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 transition-colors ${
           showChat ? 'bg-green-100 text-green-600' : 'bg-blue-50 text-primary-container'

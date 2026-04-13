@@ -145,7 +145,7 @@ export function ChatRoom() {
     <motion.div
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
-      className="flex flex-col h-[calc(100vh-64px)]"
+      className="flex flex-col h-[calc(100dvh-64px)]"
     >
       {/* 헤더 */}
       <div className="flex items-center gap-3 px-4 py-4 bg-white border-b border-slate-100 shadow-sm">

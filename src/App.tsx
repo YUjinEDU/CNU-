@@ -45,6 +45,7 @@ function AppContent() {
   }
 
   const hideChrome = state === 'LOGIN' || state === 'SIGNUP';
+  const hideBottomNav = hideChrome || state === 'CHAT';
 
   return (
     <div className="min-h-screen bg-surface flex flex-col font-sans">
@@ -72,7 +73,7 @@ function AppContent() {
         </AnimatePresence>
       </main>
 
-      {!hideChrome && <BottomNav />}
+      {!hideBottomNav && <BottomNav />}
     </div>
   );
 }
