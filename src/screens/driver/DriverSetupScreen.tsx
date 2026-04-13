@@ -37,6 +37,7 @@ export function DriverSetupScreen() {
 
   const handleStartRoute = async () => {
     if (!canStart || !user) return;
+    alert(`출발: ${driverSource}, 도착: ${driverDest}, 시간: ${departureTimeStr}`); // 디버그용
     setIsSubmitting(true);
     try {
       setDriverRoute([]);
