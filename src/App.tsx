@@ -20,16 +20,13 @@ import { PassengerEnRouteScreen } from './screens/passenger/PassengerEnRouteScre
 import { PassengerInTransitScreen } from './screens/passenger/PassengerInTransitScreen';
 
 // 화이트 스크린 방지 Error Boundary
-class ErrorBoundary extends React.Component<
-  { children: React.ReactNode },
-  { error: Error | null }
-> {
-  constructor(props: { children: React.ReactNode }) {
-    super(props);
-    this.state = { error: null };
-  }
+interface EBProps { children: React.ReactNode }
+interface EBState { error: Error | null }
 
-  static getDerivedStateFromError(error: Error) {
+class ErrorBoundary extends React.Component<EBProps, EBState> {
+  state: EBState = { error: null };
+
+  static getDerivedStateFromError(error: Error): EBState {
     return { error };
   }
 
@@ -40,10 +37,7 @@ class ErrorBoundary extends React.Component<
           <p className="text-2xl font-bold text-red-600 mb-2">오류가 발생했습니다</p>
           <p className="text-sm text-red-500 mb-4">{this.state.error.message}</p>
           <button
-            onClick={() => {
-              this.setState({ error: null });
-              window.location.reload();
-            }}
+            onClick={() => window.location.reload()}
             className="bg-red-600 text-white px-6 py-3 rounded-xl font-bold"
           >
             새로고침
