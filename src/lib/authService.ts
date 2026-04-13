@@ -35,6 +35,7 @@ export async function signup(
     employeeNumber: employeeId,
     passwordHash,
     isVerified: true,
+    stats: { totalRides: 0, driveCount: 0, rideCount: 0, cancelCount: 0 },
     createdAt: new Date().toISOString(),
   };
 
