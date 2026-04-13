@@ -182,6 +182,62 @@ export function ChatRoom() {
         </div>
       )}
 
+      {/* 상단 액션 바 */}
+      {status && status !== 'completed' && status !== 'cancelled' && status !== 'rejected' && status !== 'pending' && (
+        <div className="px-4 py-2.5 bg-white border-b border-slate-100 shadow-sm">
+          {/* 상태 표시 */}
+          <div className="flex items-center justify-between mb-2">
+            <span className={`text-xs font-bold px-3 py-1 rounded-full ${
+              status === 'accepted' ? 'bg-blue-50 text-blue-700' :
+              status === 'confirming' ? 'bg-amber-50 text-amber-700' :
+              status === 'confirmed' ? 'bg-green-50 text-green-700' : 'bg-slate-100 text-slate-600'
+            }`}>
+              {status === 'accepted' && '채팅 중 — 픽업 장소를 정해주세요'}
+              {status === 'confirming' && (iConfirmed ? '상대방 확정 대기 중...' : '상대방이 합의를 확정했습니다!')}
+              {status === 'confirmed' && '매칭 확정 완료'}
+            </span>
+            <button
+              onClick={handleCancel}
+              className="text-red-500 text-[11px] font-bold"
+            >
+              취소
+            </button>
+          </div>
+          {/* 액션 버튼 */}
+          <div className="flex gap-2">
+            {(status === 'accepted' || (status === 'confirming' && !iConfirmed)) && (
+              <button
+                onClick={handleConfirm}
+                className="flex-1 py-2.5 bg-[#2E7D32] text-white rounded-xl text-sm font-bold active:scale-95 transition-all"
+              >
+                합의 완료 ✓
+              </button>
+            )}
+            {status === 'confirmed' && (
+              <>
+                <button
+                  onClick={handleArrived}
+                  disabled={!!iArrived}
+                  className={`flex-1 py-2.5 rounded-xl text-sm font-bold active:scale-95 transition-all ${
+                    iArrived
+                      ? 'bg-green-100 text-green-600'
+                      : 'bg-blue-500 text-white'
+                  }`}
+                >
+                  {iArrived ? '도착 완료 ✓' : '도착했어요 📍'}
+                </button>
+                <button
+                  onClick={handleComplete}
+                  className="flex-1 py-2.5 bg-primary-container text-white rounded-xl text-sm font-bold active:scale-95 transition-all"
+                >
+                  하차 완료
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* 메시지 목록 */}
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 bg-slate-50">
         {messages.length === 0 && (
@@ -226,59 +282,6 @@ export function ChatRoom() {
         })}
         <div ref={bottomRef} />
       </div>
-
-      {/* 액션 버튼 영역 */}
-      {status && status !== 'completed' && status !== 'cancelled' && status !== 'rejected' && status !== 'pending' && (
-        <div className="px-4 py-3 bg-white border-t border-slate-100 flex gap-2 flex-wrap">
-          {/* 매칭 취소 */}
-          <button
-            onClick={handleCancel}
-            className="px-4 py-2.5 bg-red-50 text-red-600 rounded-xl text-xs font-bold border border-red-200"
-          >
-            매칭 취소
-          </button>
-
-          {/* 합의 완료 — accepted or confirming(상대만 확정) */}
-          {(status === 'accepted' || (status === 'confirming' && !iConfirmed)) && (
-            <button
-              onClick={handleConfirm}
-              className="flex-1 px-4 py-2.5 bg-[#2E7D32] text-white rounded-xl text-xs font-bold"
-            >
-              합의 완료 ✓
-            </button>
-          )}
-
-          {/* 확정 대기 표시 */}
-          {status === 'confirming' && iConfirmed && (
-            <span className="flex-1 px-4 py-2.5 bg-amber-50 text-amber-700 rounded-xl text-xs font-bold text-center border border-amber-200">
-              상대방 확정 대기 중...
-            </span>
-          )}
-
-          {/* 도착 + 하차 — confirmed */}
-          {status === 'confirmed' && (
-            <>
-              <button
-                onClick={handleArrived}
-                disabled={!!iArrived}
-                className={`flex-1 px-4 py-2.5 rounded-xl text-xs font-bold border ${
-                  iArrived
-                    ? 'bg-green-100 text-green-600 border-green-200'
-                    : 'bg-blue-50 text-blue-700 border-blue-200'
-                }`}
-              >
-                {iArrived ? '도착 알림 완료 ✓' : '도착했어요 📍'}
-              </button>
-              <button
-                onClick={handleComplete}
-                className="flex-1 px-4 py-2.5 bg-primary-container text-white rounded-xl text-xs font-bold"
-              >
-                하차 완료
-              </button>
-            </>
-          )}
-        </div>
-      )}
 
       {/* 입력창 */}
       <div className="px-4 py-4 bg-white border-t border-slate-100">
