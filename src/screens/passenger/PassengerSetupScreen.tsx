@@ -2,12 +2,12 @@ import { useState } from 'react';
 import { Search, Building, FlaskConical, Building2, Tractor } from 'lucide-react';
 import { motion } from 'motion/react';
 import { Coordinate } from '../../types';
-import { MapComponent } from '../../components/MapComponent';
+// import { MapComponent } from '../../components/MapComponent';  // 지도 비활성화
 import { AddressSearch } from '../../components/AddressSearch';
 import { useApp } from '../../contexts/AppContext';
 
 export function PassengerSetupScreen() {
-  const { user, setState, walkingRadius, setWalkingRadius, setPickupPoint } = useApp();
+  const { user, setState, /* walkingRadius, setWalkingRadius, */ setPickupPoint } = useApp();
   const firstAddr = user?.savedAddresses?.[0];
   const hasValidCoord = firstAddr && firstAddr.lat !== 0 && firstAddr.lng !== 0;
   const [pickupLocation, setPickupLocation] = useState(firstAddr?.name || '');
@@ -16,14 +16,17 @@ export function PassengerSetupScreen() {
   );
   const [destinationZone, setDestinationZone] = useState('');
 
-  const walkingRadiusMeters = walkingRadius * 80; // 약 80m/분
+  // const walkingRadiusMeters = walkingRadius * 80; // 약 80m/분  // 도보거리 비활성화
 
   const handleSearch = () => {
-    if (!pickupCoords || !destinationZone) {
-      alert('픽업 지역과 목적지 권역을 선택해주세요.');
+    if (!destinationZone) {
+      alert('목적지 권역을 선택해주세요.');
       return;
     }
-    setPickupPoint(pickupCoords);
+    // 좌표가 있으면 거리순 정렬에 사용, 없으면 전체 리스트 표시
+    if (pickupCoords) {
+      setPickupPoint(pickupCoords);
+    }
     setState('PASSENGER_SEARCH');
   };
 
@@ -35,7 +38,7 @@ export function PassengerSetupScreen() {
     >
       <h2 className="text-3xl font-extrabold text-primary-container tracking-tight">카풀 검색하기</h2>
 
-      {/* 지도 — 내 위치 + 도보 반경 원 */}
+      {/* 지도 비활성화 — 교수님 요청
       {pickupCoords && (
         <div className="rounded-xl overflow-hidden h-48 bg-slate-200">
           <MapComponent
@@ -46,6 +49,7 @@ export function PassengerSetupScreen() {
           />
         </div>
       )}
+      */}
 
       <div className="space-y-6">
         <div className="bg-surface-container-lowest p-5 rounded-xl shadow-sm">
@@ -58,6 +62,11 @@ export function PassengerSetupScreen() {
             }}
             placeholder="집 주소 검색 (카카오 우편번호)"
           />
+          {pickupLocation && (
+            <p className="text-xs text-green-600 font-medium mt-2">
+              {pickupLocation}
+            </p>
+          )}
         </div>
 
         <div className="bg-surface-container-lowest p-5 rounded-xl shadow-sm">
@@ -82,6 +91,7 @@ export function PassengerSetupScreen() {
           </div>
         </div>
 
+        {/* 도보 거리 슬라이더 비활성화 — 교수님 요청
         <div className="bg-surface-container-lowest p-6 rounded-xl shadow-sm text-center space-y-4">
           <h3 className="text-lg font-extrabold text-primary-container">🏃‍♂️ 최대 도보 시간</h3>
           <div className="flex justify-between px-2">
@@ -97,13 +107,14 @@ export function PassengerSetupScreen() {
           />
           <p className="text-xs text-on-surface-variant">약 {walkingRadiusMeters}m 반경</p>
         </div>
+        */}
       </div>
 
       <button
         onClick={handleSearch}
-        disabled={!pickupCoords || !destinationZone}
+        disabled={!destinationZone}
         className={`w-full py-5 rounded-xl text-lg font-bold shadow-xl flex items-center justify-center gap-3 transition-all ${
-          pickupCoords && destinationZone
+          destinationZone
             ? 'bg-primary-container text-white active:scale-95'
             : 'bg-slate-300 text-slate-500 cursor-not-allowed'
         }`}
