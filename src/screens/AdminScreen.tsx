@@ -163,7 +163,7 @@ export function AdminScreen() {
               {users.map(u => (
                 <div key={u.uid} className="bg-surface-container-lowest rounded-xl p-4 shadow-sm flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-primary-container/10 flex items-center justify-center">
-                    <span className="font-bold text-primary-container">{u.name[0]}</span>
+                    <span className="font-bold text-primary-container">{(u.name ?? '?')[0]}</span>
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-bold text-on-surface text-sm truncate">{u.name} {u.isAdmin && '(관리자)'}</p>

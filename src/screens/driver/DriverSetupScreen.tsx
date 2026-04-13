@@ -70,7 +70,12 @@ export function DriverSetupScreen() {
       animate={{ opacity: 1, x: 0 }}
       className="px-6 py-8 space-y-8 pb-32"
     >
-      <h2 className="text-3xl font-extrabold text-primary-container tracking-tight">운행 등록하기</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-3xl font-extrabold text-primary-container tracking-tight">운행 등록하기</h2>
+        <button onClick={() => setState('HOME')} className="text-primary-container text-sm font-bold bg-blue-50 px-4 py-2 rounded-full">
+          취소
+        </button>
+      </div>
 
       <div className="space-y-6">
         {/* 출발지 */}

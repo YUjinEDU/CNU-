@@ -68,11 +68,19 @@ export function PassengerSearchScreen() {
       animate={{ opacity: 1 }}
       className="px-4 py-6 space-y-4 pb-32"
     >
-      <div className="px-2">
-        <h2 className="text-2xl font-extrabold text-primary-container">검색 결과</h2>
-        <p className="text-on-surface-variant text-sm font-medium">
-          {pickupPoint ? (isReturn ? '내 집 방향 기준 거리순' : '내 출발지 기준 거리순') : '출발시간 빠른 순'} · {sortedRoutes.length}대
-        </p>
+      <div className="px-2 flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-extrabold text-primary-container">검색 결과</h2>
+          <p className="text-on-surface-variant text-sm font-medium">
+            {pickupPoint ? (isReturn ? '내 집 방향 기준 거리순' : '내 출발지 기준 거리순') : '출발시간 빠른 순'} · {sortedRoutes.length}대
+          </p>
+        </div>
+        <button
+          onClick={() => setState('PASSENGER_SETUP')}
+          className="text-primary-container text-sm font-bold bg-blue-50 px-4 py-2 rounded-full"
+        >
+          다시 검색
+        </button>
       </div>
 
       {sortedRoutes.length === 0 ? (

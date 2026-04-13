@@ -30,11 +30,10 @@ export function ProfileEditScreen() {
     };
 
     try {
-      saveUser(updatedUser);
+      await saveUser(updatedUser);
       setUser(updatedUser);
       setState('PROFILE');
     } catch (error) {
-      console.error("Error updating profile:", error);
       alert("프로필 업데이트 중 오류가 발생했습니다.");
     }
   };

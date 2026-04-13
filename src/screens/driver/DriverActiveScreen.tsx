@@ -119,7 +119,7 @@ export function DriverActiveScreen() {
             <div key={ride.id} className="bg-white p-4 rounded-xl shadow-md border border-orange-200">
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-10 h-10 rounded-full bg-primary-container/10 flex items-center justify-center">
-                  <span className="font-bold text-primary-container">{ride.passengerName[0]}</span>
+                  <span className="font-bold text-primary-container">{(ride.passengerName ?? '?')[0]}</span>
                 </div>
                 <div className="flex-1">
                   <p className="font-bold text-on-surface">{ride.passengerName}</p>

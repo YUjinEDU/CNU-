@@ -119,8 +119,8 @@ export function HomeScreen() {
             <div className="flex-1 text-left">
               <p className="font-bold text-blue-800">운행 모집 중</p>
               <p className="text-xs text-blue-600 mt-1">
-                {currentRoute.sourceName} → {currentRoute.destName}
-                {currentRoute.departureTime && ` · ${currentRoute.departureTime} 출발`}
+                {currentRoute?.sourceName} → {currentRoute?.destName}
+                {currentRoute?.departureTime && ` · ${currentRoute.departureTime} 출발`}
               </p>
             </div>
             <span className="text-blue-600 font-bold text-sm">보기 →</span>
