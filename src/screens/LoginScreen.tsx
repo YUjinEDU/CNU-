@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { School, Hash, Lock, Eye, EyeOff } from 'lucide-react';
+import { School, Hash, Lock, Eye, EyeOff, X } from 'lucide-react';
 import { motion } from 'motion/react';
-import { login } from '../lib/authService';
+import { login, resetPassword } from '../lib/authService';
 import { useApp } from '../contexts/AppContext';
 
 export function LoginScreen() {
@@ -11,6 +11,11 @@ export function LoginScreen() {
   const [showPw, setShowPw] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showReset, setShowReset] = useState(false);
+  const [resetId, setResetId] = useState('');
+  const [resetPw, setResetPw] = useState('');
+  const [resetMsg, setResetMsg] = useState('');
+  const [resetLoading, setResetLoading] = useState(false);
 
   const handleLogin = async () => {
     if (!employeeId || !password) {
@@ -106,7 +111,78 @@ export function LoginScreen() {
         >
           처음 사용하시나요? 회원가입
         </button>
+
+        <button
+          onClick={() => { setShowReset(true); setResetMsg(''); setResetId(''); setResetPw(''); }}
+          className="w-full text-center text-sm text-on-surface-variant font-medium py-2"
+        >
+          비밀번호를 잊으셨나요?
+        </button>
       </div>
+
+      {/* 비밀번호 재설정 모달 */}
+      {showReset && (
+        <div className="fixed inset-0 z-[100] bg-black/50 flex items-center justify-center px-6" onClick={() => setShowReset(false)}>
+          <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl p-6 space-y-4" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-extrabold text-primary-container">비밀번호 재설정</h3>
+              <button onClick={() => setShowReset(false)} className="p-1.5 rounded-full bg-slate-100">
+                <X className="w-4 h-4 text-slate-500" />
+              </button>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-bold text-on-surface-variant uppercase tracking-widest ml-1">교번</label>
+                <input
+                  type="text"
+                  value={resetId}
+                  onChange={e => setResetId(e.target.value)}
+                  className="w-full mt-1 px-4 py-3 bg-surface-container-lowest rounded-xl text-on-surface font-semibold shadow-sm focus:ring-2 focus:ring-primary-container outline-none"
+                  placeholder="가입한 교번 입력"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-on-surface-variant uppercase tracking-widest ml-1">새 비밀번호 (6자 이상)</label>
+                <input
+                  type="password"
+                  value={resetPw}
+                  onChange={e => setResetPw(e.target.value)}
+                  className="w-full mt-1 px-4 py-3 bg-surface-container-lowest rounded-xl text-on-surface font-semibold shadow-sm focus:ring-2 focus:ring-primary-container outline-none"
+                  placeholder="새 비밀번호 입력"
+                />
+              </div>
+              {resetMsg && (
+                <p className={`text-sm font-medium text-center ${resetMsg.includes('완료') ? 'text-green-600' : 'text-red-500'}`}>
+                  {resetMsg}
+                </p>
+              )}
+            </div>
+            <button
+              onClick={async () => {
+                if (!resetId || !resetPw) { setResetMsg('교번과 새 비밀번호를 입력해주세요.'); return; }
+                setResetLoading(true);
+                try {
+                  await resetPassword(resetId.trim(), resetPw);
+                  setResetMsg('비밀번호 재설정 완료! 새 비밀번호로 로그인하세요.');
+                  setTimeout(() => setShowReset(false), 2000);
+                } catch (e: any) {
+                  setResetMsg(e.message || '재설정에 실패했습니다.');
+                } finally {
+                  setResetLoading(false);
+                }
+              }}
+              disabled={resetLoading || !resetId || !resetPw}
+              className={`w-full py-3 rounded-xl font-bold text-sm transition-all ${
+                !resetLoading && resetId && resetPw
+                  ? 'bg-primary-container text-white active:scale-95'
+                  : 'bg-slate-300 text-slate-500'
+              }`}
+            >
+              {resetLoading ? '처리 중...' : '비밀번호 재설정'}
+            </button>
+          </div>
+        </div>
+      )}
     </motion.div>
   );
 }

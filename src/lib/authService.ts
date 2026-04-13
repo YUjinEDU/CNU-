@@ -63,6 +63,19 @@ export async function login(employeeId: string, password: string): Promise<User>
   return userData;
 }
 
+export async function resetPassword(employeeId: string, newPassword: string): Promise<void> {
+  const docRef = doc(db, 'users', employeeId);
+  const snap = await getDoc(docRef);
+  if (!snap.exists()) {
+    throw new Error('등록되지 않은 교번입니다.');
+  }
+  if (newPassword.length < 6) {
+    throw new Error('비밀번호는 6자 이상이어야 합니다.');
+  }
+  const passwordHash = await hashPassword(newPassword);
+  await setDoc(docRef, { passwordHash }, { merge: true });
+}
+
 export function logout(): void {
   localStorage.removeItem(SESSION_KEY);
 }
