@@ -1,11 +1,19 @@
-import React from 'react';
-import { MapPin, Car, Settings, LogOut, ChevronRight, BadgeCheck } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { MapPin, Car, Settings, LogOut, ChevronRight, BadgeCheck, BarChart3, History } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useApp } from '../contexts/AppContext';
 import { logout } from '../lib/authService';
+import { Ride } from '../types';
+import { getRideHistory } from '../lib/firebaseDb';
 
 export function ProfileScreen() {
   const { user, setUser, setState } = useApp();
+  const [history, setHistory] = useState<Ride[]>([]);
+
+  useEffect(() => {
+    if (!user?.uid) return;
+    getRideHistory(user.uid).then(setHistory);
+  }, [user?.uid]);
 
   const handleLogout = () => {
     logout();
@@ -45,6 +53,69 @@ export function ProfileScreen() {
             인증 완료
           </div>
         </div>
+      </div>
+
+      {/* 카풀 통계 */}
+      <div className="space-y-4">
+        <h4 className="text-sm font-bold text-on-surface-variant uppercase tracking-widest ml-1 flex items-center gap-2">
+          <BarChart3 className="w-4 h-4" />
+          카풀 통계
+        </h4>
+        <div className="grid grid-cols-4 gap-2">
+          <div className="bg-surface-container-lowest rounded-xl p-3 text-center shadow-sm">
+            <p className="text-xl font-black text-primary-container">{user?.stats?.totalRides ?? 0}</p>
+            <p className="text-[10px] text-on-surface-variant font-bold">총 카풀</p>
+          </div>
+          <div className="bg-surface-container-lowest rounded-xl p-3 text-center shadow-sm">
+            <p className="text-xl font-black text-blue-600">{user?.stats?.driveCount ?? 0}</p>
+            <p className="text-[10px] text-on-surface-variant font-bold">운전</p>
+          </div>
+          <div className="bg-surface-container-lowest rounded-xl p-3 text-center shadow-sm">
+            <p className="text-xl font-black text-green-600">{user?.stats?.rideCount ?? 0}</p>
+            <p className="text-[10px] text-on-surface-variant font-bold">탑승</p>
+          </div>
+          <div className="bg-surface-container-lowest rounded-xl p-3 text-center shadow-sm">
+            <p className="text-xl font-black text-red-500">{user?.stats?.cancelCount ?? 0}</p>
+            <p className="text-[10px] text-on-surface-variant font-bold">취소</p>
+          </div>
+        </div>
+      </div>
+
+      {/* 카풀 이력 */}
+      <div className="space-y-4">
+        <h4 className="text-sm font-bold text-on-surface-variant uppercase tracking-widest ml-1 flex items-center gap-2">
+          <History className="w-4 h-4" />
+          최근 카풀 이력
+        </h4>
+        {history.length === 0 ? (
+          <div className="bg-surface-container-lowest rounded-xl p-5 shadow-sm text-center">
+            <p className="text-on-surface-variant text-sm">카풀 이력이 없습니다.</p>
+          </div>
+        ) : (
+          <div className="bg-surface-container-lowest rounded-xl shadow-sm divide-y divide-slate-100">
+            {history.slice(0, 10).map((ride) => {
+              const isDriver = ride.driverId === user?.uid;
+              const otherName = isDriver ? ride.passengerName : (ride.driverName || '운전자');
+              const date = new Date(ride.createdAt).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' });
+              const statusLabel = ride.status === 'completed' ? '완료' : ride.status === 'cancelled' ? '취소' : ride.status;
+              const statusColor = ride.status === 'completed' ? 'text-green-600 bg-green-50' : 'text-red-500 bg-red-50';
+              return (
+                <div key={ride.id} className="flex items-center gap-3 px-5 py-3">
+                  <div className={`text-xs font-bold px-2 py-1 rounded-full ${isDriver ? 'bg-blue-50 text-blue-600' : 'bg-green-50 text-green-600'}`}>
+                    {isDriver ? '운전' : '탑승'}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-on-surface text-sm truncate">{otherName}</p>
+                    <p className="text-[10px] text-on-surface-variant">{date}</p>
+                  </div>
+                  <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${statusColor}`}>
+                    {statusLabel}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* 자주 가는 주소 */}
