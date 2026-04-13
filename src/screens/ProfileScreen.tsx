@@ -1,10 +1,21 @@
-import React from 'react';
-import { MapPin, Car, Settings, LogOut, ChevronRight, BadgeCheck } from 'lucide-react';
+import React, { useState } from 'react';
+import { MapPin, Car, Settings, LogOut, ChevronRight, BadgeCheck, Users, RefreshCw } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useApp } from '../contexts/AppContext';
+import { getAllUsers, getUser } from '../lib/localDb';
 
 export function ProfileScreen() {
-  const { user, setUser, setState } = useApp();
+  const { user, setUser, setState, localUid } = useApp();
+  const [showUserSwitch, setShowUserSwitch] = useState(false);
+  const testUsers = getAllUsers().filter(u => u.uid.startsWith('test-'));
+
+  const handleSwitchUser = (uid: string) => {
+    const target = getUser(uid);
+    if (!target) return;
+    localStorage.setItem('cnu-carpool-uid', uid);
+    setUser(target);
+    setShowUserSwitch(false);
+  };
 
   return (
     <motion.div
@@ -95,25 +106,65 @@ export function ProfileScreen() {
       </div>
 
       <div className="space-y-2 pt-4">
-        <button className="w-full bg-surface-container-lowest p-4 rounded-xl flex items-center justify-between text-on-surface font-bold shadow-sm">
+        <button
+          onClick={() => setState('PROFILE_EDIT')}
+          className="w-full bg-surface-container-lowest p-4 rounded-xl flex items-center justify-between text-on-surface font-bold shadow-sm"
+        >
           <div className="flex items-center gap-3">
             <Settings className="w-5 h-5 text-on-surface-variant" />
-            설정
+            프로필 설정
           </div>
           <ChevronRight className="w-5 h-5 text-outline" />
         </button>
         <button
-          onClick={() => {
-            setUser(null);
-            setState('SIGNUP');
-          }}
-          className="w-full bg-surface-container-lowest p-4 rounded-xl flex items-center justify-between text-red-500 font-bold shadow-sm"
+          onClick={() => setState('SIGNUP')}
+          className="w-full bg-surface-container-lowest p-4 rounded-xl flex items-center justify-between text-on-surface font-bold shadow-sm"
         >
           <div className="flex items-center gap-3">
-            <LogOut className="w-5 h-5" />
-            로그아웃
+            <LogOut className="w-5 h-5 text-on-surface-variant" />
+            새 프로필 만들기
           </div>
+          <ChevronRight className="w-5 h-5 text-outline" />
         </button>
+
+        {/* 데모용: 테스트 유저 전환 */}
+        <button
+          onClick={() => setShowUserSwitch(!showUserSwitch)}
+          className="w-full bg-amber-50 p-4 rounded-xl flex items-center justify-between text-amber-700 font-bold shadow-sm border border-amber-200"
+        >
+          <div className="flex items-center gap-3">
+            <RefreshCw className="w-5 h-5" />
+            데모 유저 전환
+          </div>
+          <ChevronRight className={`w-5 h-5 transition-transform ${showUserSwitch ? 'rotate-90' : ''}`} />
+        </button>
+
+        {showUserSwitch && (
+          <div className="bg-amber-50/50 rounded-xl p-3 space-y-2 border border-amber-100">
+            {testUsers.map(u => (
+              <button
+                key={u.uid}
+                onClick={() => handleSwitchUser(u.uid)}
+                className={`w-full text-left p-3 rounded-lg flex items-center gap-3 transition-colors ${
+                  u.uid === user?.uid ? 'bg-primary-container text-white' : 'bg-white hover:bg-blue-50'
+                }`}
+              >
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                  u.uid === user?.uid ? 'bg-white/20' : 'bg-primary-container/10 text-primary-container'
+                }`}>
+                  {u.name[0]}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className={`font-bold text-sm truncate ${u.uid === user?.uid ? '' : 'text-on-surface'}`}>{u.name}</p>
+                  <p className={`text-[10px] truncate ${u.uid === user?.uid ? 'opacity-80' : 'text-on-surface-variant'}`}>
+                    {u.department} · {u.role === 'driver' ? '운전자' : u.role === 'passenger' ? '탑승자' : '둘 다'}
+                    {u.vehicle ? ` · ${u.vehicle.plateNumber}` : ''}
+                  </p>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
       </div>
     </motion.div>
   );

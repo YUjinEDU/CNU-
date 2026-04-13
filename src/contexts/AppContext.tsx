@@ -77,10 +77,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const existingUser = getUser(localUid);
     if (existingUser) {
       setUser(existingUser);
-      setState('HOME');
     } else {
-      setState('SIGNUP');
+      // 데모: 프로필 없으면 첫 번째 테스트 유저로 자동 로그인
+      const demoUser = getUser('test-001');
+      if (demoUser) {
+        localStorage.setItem('cnu-carpool-uid', demoUser.uid);
+        setUser(demoUser);
+      }
     }
+    setState('HOME');
     setAvailableRoutes(getActiveRoutes());
     setIsAuthReady(true);
   }, [localUid]);
