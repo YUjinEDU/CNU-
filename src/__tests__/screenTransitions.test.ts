@@ -79,13 +79,13 @@ describe('화면별 데이터 의존성', () => {
   it('모든 AppState 값이 유효하다', () => {
     const validStates: AppState[] = [
       'LOGIN', 'SIGNUP', 'HOME',
-      'DRIVER_SETUP', 'DRIVER_CONFIRM', 'DRIVER_ACTIVE',
+      'DRIVER_SETUP', 'DRIVER_ACTIVE',
       'DRIVER_MATCHED', 'DRIVER_EN_ROUTE', 'DRIVER_ARRIVED', 'DRIVER_IN_TRANSIT',
       'PASSENGER_SETUP', 'PASSENGER_SEARCH', 'PASSENGER_MATCHED',
       'PASSENGER_EN_ROUTE', 'PASSENGER_IN_TRANSIT',
       'PROFILE', 'PROFILE_EDIT',
     ];
-    expect(validStates.length).toBe(17);
+    expect(validStates.length).toBe(16);
   });
 });
 
