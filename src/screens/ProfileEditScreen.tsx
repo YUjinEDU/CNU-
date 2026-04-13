@@ -3,11 +3,11 @@ import { Plus, ArrowRight } from 'lucide-react';
 import { motion } from 'motion/react';
 import { SavedAddress } from '../types';
 import { AddressAutocomplete } from '../components/AddressAutocomplete';
-import { saveUser } from '../lib/localDb';
+import { saveUser } from '../lib/firebaseDb';
 import { useApp } from '../contexts/AppContext';
 
 export function ProfileEditScreen() {
-  const { user, setUser, setState, localUid } = useApp();
+  const { user, setUser, setState } = useApp();
   const [addresses, setAddresses] = useState<SavedAddress[]>(user?.savedAddresses || [{ name: '', lat: 0, lng: 0 }]);
 
   const handleAddAddress = () => setAddresses([...addresses, { name: '', lat: 0, lng: 0 }]);

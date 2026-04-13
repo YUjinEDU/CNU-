@@ -48,6 +48,13 @@ export default defineConfig(({mode}) => {
         },
       },
     },
+    preview: {
+      host: '0.0.0.0',
+      port: 4173,
+      strictPort: true,
+      // Temporary demo mode: allow tunnel hosts to reach vite preview.
+      allowedHosts: true,
+    },
     test: {
       globals: true,
       environment: 'jsdom',

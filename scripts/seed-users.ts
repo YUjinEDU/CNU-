@@ -7,7 +7,7 @@ import { getFirestore, doc, setDoc, collection, addDoc, Timestamp } from 'fireba
 import config from '../firebase-applet-config.json';
 
 const app = initializeApp(config);
-const db = getFirestore(app, config.firestoreDatabaseId);
+const db = getFirestore(app);
 
 const testUsers = [
   {

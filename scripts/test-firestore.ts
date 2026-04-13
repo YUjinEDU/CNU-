@@ -8,11 +8,11 @@ import config from '../firebase-applet-config.json';
 
 console.log('🔧 Firebase 설정 확인...');
 console.log('  projectId:', config.projectId);
-console.log('  databaseId:', config.firestoreDatabaseId);
+console.log('  databaseId:', config.projectId);
 console.log('');
 
 const app = initializeApp(config);
-const db = getFirestore(app, config.firestoreDatabaseId);
+const db = getFirestore(app);
 
 async function testConnection() {
   console.log('1️⃣  Firestore 연결 테스트...');

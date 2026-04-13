@@ -1,5 +1,5 @@
 import { Coordinate, LiveLocation } from '../types';
-import { updateLiveLocation, getLiveLocation, removeLiveLocation } from './localDb';
+import { updateLiveLocation, getLiveLocation, removeLiveLocation } from './firebaseDb';
 
 /**
  * 현재 사용자의 실시간 위치를 localStorage에 업데이트.

@@ -2,6 +2,8 @@ import React, { useRef, useEffect, useCallback, useState } from 'react';
 import { Coordinate } from '../types';
 import { useNaverMaps } from '../hooks/useNaverMaps';
 import { getDirections } from '../lib/naverApi';
+import { markNaverMapDiagnostic } from '../lib/naverMapDiagnostics';
+import { isNaverMapsRuntimeReady } from '../lib/naverMapsRuntime';
 
 const CNU_CENTER = { lat: 36.3622, lng: 127.3444 };
 
@@ -35,8 +37,15 @@ export const MapComponent: React.FC<MapComponentProps> = ({
   // Initialize map — 성공해야만 mapReady=true
   useEffect(() => {
     if (!isLoaded || !containerRef.current) return;
+    if (!isNaverMapsRuntimeReady(typeof naver !== 'undefined' ? naver : undefined)) {
+      markNaverMapDiagnostic('map-init-failed', '네이버 지도 런타임 불완전 초기화');
+      setMapReady(false);
+      return;
+    }
     mapRef.current = null;
     setMapReady(false);
+    let idleListener: object | null = null;
+    let tilesLoadedListener: object | null = null;
 
     try {
       const map = new naver.maps.Map(containerRef.current, {
@@ -50,15 +59,25 @@ export const MapComponent: React.FC<MapComponentProps> = ({
         mapDataControl: false,
       });
       mapRef.current = map;
+      markNaverMapDiagnostic('map-created', { center, zoom });
+      idleListener = naver.maps.Event.addListener(map, 'idle', () => {
+        markNaverMapDiagnostic('idle');
+      });
+      tilesLoadedListener = naver.maps.Event.addListener(map, 'tilesloaded', () => {
+        markNaverMapDiagnostic('tilesloaded');
+      });
       // 100ms 후에 Map이 정상 동작하면 ready
       setTimeout(() => {
         if (mapRef.current) setMapReady(true);
       }, 100);
-    } catch {
+    } catch (err) {
+      markNaverMapDiagnostic('map-init-failed', err instanceof Error ? err.message : 'unknown');
       setMapReady(false);
     }
 
     return () => {
+      if (idleListener) naver.maps.Event.removeListener(idleListener);
+      if (tilesLoadedListener) naver.maps.Event.removeListener(tilesLoadedListener);
       overlaysRef.current.forEach(o => { try { o.setMap(null); } catch {} });
       overlaysRef.current = [];
       mapRef.current = null;
@@ -83,6 +102,7 @@ export const MapComponent: React.FC<MapComponentProps> = ({
   // Draw overlays — mapReady가 아니면 절대 실행 안 함
   useEffect(() => {
     if (!mapReady || !mapRef.current) return;
+    if (!isNaverMapsRuntimeReady(typeof naver !== 'undefined' ? naver : undefined)) return;
     clearOverlays();
     const map = mapRef.current;
 

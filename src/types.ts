@@ -20,6 +20,7 @@ export interface User {
   uid: string;
   name: string;
   employeeNumber?: string;  // 교번
+  passwordHash?: string;    // SHA-256 해시
   department: string;
   role: 'driver' | 'passenger' | 'both';
   isVerified: boolean;
@@ -66,20 +67,21 @@ export interface LiveLocation {
   updatedAt: any;
 }
 
-export type AppState = 
+export type AppState =
   | 'LOGIN'
   | 'SIGNUP'
-  | 'HOME' 
-  | 'DRIVER_SETUP' 
-  | 'DRIVER_ACTIVE' 
+  | 'HOME'
+  | 'DRIVER_SETUP'
+  | 'DRIVER_ACTIVE'
   | 'DRIVER_MATCHED'
   | 'DRIVER_EN_ROUTE'
   | 'DRIVER_ARRIVED'
   | 'DRIVER_IN_TRANSIT'
-  | 'PASSENGER_SETUP' 
-  | 'PASSENGER_SEARCH' 
+  | 'PASSENGER_SETUP'
+  | 'PASSENGER_SEARCH'
   | 'PASSENGER_MATCHED'
   | 'PASSENGER_EN_ROUTE'
   | 'PASSENGER_IN_TRANSIT'
   | 'PROFILE'
-  | 'PROFILE_EDIT';
+  | 'PROFILE_EDIT'
+  | 'CHAT';

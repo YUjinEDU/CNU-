@@ -1,87 +1,93 @@
-import { useMemo, useState, useEffect } from 'react';
-import { BadgeCheck, MapPin, ArrowRight } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { BadgeCheck, MessageCircle, Clock } from 'lucide-react';
 import { motion } from 'motion/react';
-import { findClosestPointOnRoute, safeParseRoutePath } from '../../lib/geoUtils';
-import { reverseGeocode } from '../../lib/naverApi';
-import { MapComponent } from '../../components/MapComponent';
+import { subscribeToRide } from '../../lib/firebaseDb';
 import { useApp } from '../../contexts/AppContext';
 
 export function PassengerMatchedScreen() {
-  const { setState, walkingRadius, pickupPoint, selectedRoute } = useApp();
-  const passengerSearchCenter = pickupPoint || { lat: 36.355, lng: 127.345 };
-  const passengerRadiusMeters = walkingRadius * 80;
-  const [pickupAddress, setPickupAddress] = useState('픽업 위치 확인 중...');
+  const { setState, currentRide, selectedRoute, setCurrentRide } = useApp();
+  const [rideStatus, setRideStatus] = useState(currentRide?.status || 'pending');
 
-  const routePath = useMemo(() => {
-    return safeParseRoutePath(selectedRoute?.path);
-  }, [selectedRoute]);
-
-  const calculatedPickup = useMemo(() => {
-    return findClosestPointOnRoute(routePath, passengerSearchCenter);
-  }, [routePath, passengerSearchCenter]);
-
+  // 실시간 탑승 상태 구독
   useEffect(() => {
-    reverseGeocode(calculatedPickup).then(setPickupAddress);
-  }, [calculatedPickup]);
+    if (!currentRide?.id) return;
+    const unsubscribe = subscribeToRide(currentRide.id, ride => {
+      if (ride) {
+        setRideStatus(ride.status);
+        setCurrentRide(ride);
+      }
+    });
+    return unsubscribe;
+  }, [currentRide?.id]);
+
+  const isAccepted = rideStatus === 'accepted';
 
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
-      className="flex flex-col min-h-[calc(100vh-160px)]"
+      className="px-6 py-8 space-y-6 pb-32"
     >
-      <div className="flex-1 relative">
-        <div className="absolute inset-0 bg-slate-200">
-          <MapComponent
-            polylines={routePath.length > 0 ? [routePath] : []}
-            circles={[{ center: passengerSearchCenter, radius: passengerRadiusMeters }]}
-            markers={[calculatedPickup]}
-            center={calculatedPickup}
-            zoom={15}
-          />
+      <div className="text-center space-y-2 mb-4">
+        <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 transition-colors ${
+          isAccepted ? 'bg-green-100 text-green-600' : 'bg-blue-50 text-primary-container'
+        }`}>
+          {isAccepted
+            ? <BadgeCheck className="w-10 h-10" />
+            : <Clock className="w-10 h-10 animate-pulse" />
+          }
         </div>
+        <h2 className="text-2xl font-extrabold text-primary-container tracking-tight">
+          {isAccepted ? '탑승이 수락되었습니다!' : '탑승 신청 완료'}
+        </h2>
+        <p className="text-on-surface-variant">
+          {isAccepted
+            ? '채팅으로 픽업 위치를 정해보세요.'
+            : '운전자가 신청을 확인하고 있습니다...'}
+        </p>
+      </div>
 
-        <div className="relative z-10 p-6 space-y-6">
-          <div className="bg-white/90 backdrop-blur-xl rounded-2xl p-6 shadow-2xl border border-white/20">
-            <div className="flex items-center gap-4 mb-6">
-              <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-white shadow-md">
-                <img src="https://picsum.photos/seed/driver/100/100" alt="Driver" className="w-full h-full object-cover" />
-              </div>
-              <div>
-                <div className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 text-primary-container rounded-full text-[10px] font-bold mb-1">
-                  <BadgeCheck className="w-3 h-3 fill-current" />
-                  SSO 인증 완료
-                </div>
-                <h2 className="text-2xl font-extrabold text-primary-container tracking-tight">최적의 픽업 포인트를 찾았습니다</h2>
-              </div>
-            </div>
-
-            <p className="text-on-surface-variant text-sm leading-relaxed mb-6">
-              운전자의 실제 경로와 탑승자의 이동 가능 반경({walkingRadius}분)을 분석한 결과, <strong>가장 가까운 지점</strong>을 픽업지로 선정했습니다.
-            </p>
-
-            <div className="bg-surface-container-low p-4 rounded-xl flex items-center gap-4">
-              <div className="bg-primary-container w-10 h-10 rounded-lg flex items-center justify-center text-white">
-                <MapPin className="w-6 h-6" />
-              </div>
-              <div>
-                <p className="text-[10px] text-on-surface-variant font-bold uppercase">픽업 장소</p>
-                <p className="text-sm font-bold text-primary-container">{pickupAddress}</p>
-              </div>
-            </div>
+      {/* 경로 정보 */}
+      <div className="bg-surface-container-lowest rounded-2xl p-6 shadow-md space-y-3">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-full bg-primary-container/10 flex items-center justify-center">
+            <span className="text-lg font-bold text-primary-container">
+              {(selectedRoute?.driverName || '?')[0]}
+            </span>
           </div>
+          <div>
+            <p className="font-bold text-on-surface">{selectedRoute?.driverName}</p>
+            <p className="text-xs text-on-surface-variant">
+              {selectedRoute?.sourceName} → {selectedRoute?.destName}
+            </p>
+          </div>
+          {selectedRoute?.departureTime && (
+            <div className="ml-auto text-right">
+              <span className="text-lg font-black text-primary-container">{selectedRoute.departureTime}</span>
+              <p className="text-[8px] text-on-surface-variant uppercase">출발</p>
+            </div>
+          )}
         </div>
       </div>
 
-      <div className="p-6 bg-white/80 backdrop-blur-xl border-t border-slate-100">
+      {/* 수락된 경우: 채팅 버튼 */}
+      {isAccepted && (
         <button
-          onClick={() => setState('PASSENGER_EN_ROUTE')}
-          className="w-full bg-primary-container text-white py-5 rounded-2xl font-bold text-lg shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all"
+          onClick={() => setState('CHAT')}
+          className="w-full bg-primary-container text-white py-5 rounded-xl font-bold text-lg shadow-lg flex items-center justify-center gap-3 active:scale-95 transition-all"
         >
-          이 차에 탑승 신청
-          <ArrowRight className="w-5 h-5" />
+          <MessageCircle className="w-6 h-6" />
+          채팅으로 픽업 위치 정하기
         </button>
-      </div>
+      )}
+
+      {/* 대기 중 */}
+      {!isAccepted && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-center">
+          <p className="text-amber-700 font-medium text-sm">운전자 수락 대기 중...</p>
+          <p className="text-amber-600 text-xs mt-1">수락되면 채팅 버튼이 나타납니다</p>
+        </div>
+      )}
     </motion.div>
   );
 }
