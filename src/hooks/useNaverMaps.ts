@@ -1,28 +1,42 @@
 import { useState, useEffect } from 'react';
 
 let loadResult = 'pending' as string;
-let authFailed = false;
 
-// SDK 크래시 글로벌 차단
+// SDK 내부 크래시 차단
 if (typeof window !== 'undefined') {
   window.addEventListener('error', (e) => {
     if (e.filename?.includes('maps.js') || e.message?.includes('capitalize') || e.message?.includes('forEach')) {
       e.preventDefault();
-      authFailed = true;
+      loadResult = 'fail';
     }
   });
+}
 
-  // SDK가 console.log/warn으로 "인증이 실패" 메시지를 출력하므로 패치해서 감지
-  const origLog = console.log.bind(console);
-  const origWarn = console.warn.bind(console);
-  const check = (...args: unknown[]) => {
-    const msg = args.map(String).join(' ');
-    if (msg.includes('인증이 실패') || msg.includes('Authentication Failed')) {
-      authFailed = true;
+/**
+ * SDK 로드 후 실제로 Map이 렌더링 가능한지 테스트.
+ * 숨겨진 div에 Map을 생성하고, 500ms 후 타일이 로드되는지 확인.
+ */
+function testMapWorks(): Promise<boolean> {
+  return new Promise((resolve) => {
+    try {
+      const div = document.createElement('div');
+      div.style.cssText = 'width:1px;height:1px;position:absolute;left:-9999px;opacity:0';
+      document.body.appendChild(div);
+
+      new naver.maps.Map(div, {
+        center: new naver.maps.LatLng(36.36, 127.34),
+        zoom: 10,
+      });
+
+      // 2초 후 loadResult가 fail이면 인증 실패
+      setTimeout(() => {
+        try { document.body.removeChild(div); } catch {}
+        resolve(loadResult !== 'fail');
+      }, 2000);
+    } catch {
+      resolve(false);
     }
-  };
-  console.log = (...args: unknown[]) => { check(...args); origLog(...args); };
-  console.warn = (...args: unknown[]) => { check(...args); origWarn(...args); };
+  });
 }
 
 export function useNaverMaps() {
@@ -35,8 +49,8 @@ export function useNaverMaps() {
     if (loadResult === 'ok') { setIsLoaded(true); return; }
     if (loadResult === 'fail') { setError('네이버 지도 인증 실패'); return; }
 
-    if (typeof naver !== 'undefined' && naver.maps?.Map && !authFailed) {
-      loadResult = 'ok';
+    // SDK 이미 로드 + 이전에 성공한 경우
+    if (typeof naver !== 'undefined' && naver.maps?.Map && loadResult === 'ok') {
       setIsLoaded(true);
       return;
     }
@@ -45,15 +59,16 @@ export function useNaverMaps() {
     script.src = `https://oapi.map.naver.com/openapi/v3/maps.js?ncpClientId=${clientId}`;
     script.async = true;
     script.onload = () => {
-      setTimeout(() => {
-        if (authFailed) {
-          loadResult = 'fail';
-          setError('네이버 Dynamic Map 인증 실패 — NCP URL 반영 대기 중 (최대 30분)');
-        } else {
+      // 실제 Map 생성 테스트
+      testMapWorks().then((ok) => {
+        if (ok) {
           loadResult = 'ok';
           setIsLoaded(true);
+        } else {
+          loadResult = 'fail';
+          setError('네이버 Dynamic Map 인증 실패 — NCP URL 반영 대기 중');
         }
-      }, 2000);
+      });
     };
     script.onerror = () => {
       loadResult = 'fail';
