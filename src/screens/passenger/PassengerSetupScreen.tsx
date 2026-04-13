@@ -8,9 +8,11 @@ import { useApp } from '../../contexts/AppContext';
 
 export function PassengerSetupScreen() {
   const { user, setState, walkingRadius, setWalkingRadius, setPickupPoint } = useApp();
-  const [pickupLocation, setPickupLocation] = useState(user?.savedAddresses?.[0]?.name || '');
+  const firstAddr = user?.savedAddresses?.[0];
+  const hasValidCoord = firstAddr && firstAddr.lat !== 0 && firstAddr.lng !== 0;
+  const [pickupLocation, setPickupLocation] = useState(firstAddr?.name || '');
   const [pickupCoords, setPickupCoords] = useState<Coordinate | null>(
-    user?.savedAddresses?.[0] ? { lat: user.savedAddresses[0].lat, lng: user.savedAddresses[0].lng } : null
+    hasValidCoord ? { lat: firstAddr.lat, lng: firstAddr.lng } : null
   );
   const [destinationZone, setDestinationZone] = useState('');
 

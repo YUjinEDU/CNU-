@@ -1,3 +1,4 @@
+import React from 'react';
 import { AnimatePresence } from 'motion/react';
 import { AppProvider, useApp } from './contexts/AppContext';
 import { TopAppBar } from './components/layout/TopAppBar';
@@ -17,6 +18,39 @@ import { PassengerSearchScreen } from './screens/passenger/PassengerSearchScreen
 import { PassengerMatchedScreen } from './screens/passenger/PassengerMatchedScreen';
 import { PassengerEnRouteScreen } from './screens/passenger/PassengerEnRouteScreen';
 import { PassengerInTransitScreen } from './screens/passenger/PassengerInTransitScreen';
+
+// 화이트 스크린 방지 Error Boundary
+class ErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { error: Error | null }
+> {
+  state = { error: null as Error | null };
+
+  static getDerivedStateFromError(error: Error) {
+    return { error };
+  }
+
+  render() {
+    if (this.state.error) {
+      return (
+        <div className="min-h-screen flex flex-col items-center justify-center bg-red-50 px-6 text-center">
+          <p className="text-2xl font-bold text-red-600 mb-2">오류가 발생했습니다</p>
+          <p className="text-sm text-red-500 mb-4">{this.state.error.message}</p>
+          <button
+            onClick={() => {
+              this.setState({ error: null });
+              window.location.reload();
+            }}
+            className="bg-red-600 text-white px-6 py-3 rounded-xl font-bold"
+          >
+            새로고침
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 function AppContent() {
   const { state, isAuthReady } = useApp();
@@ -62,8 +96,10 @@ function AppContent() {
 
 export default function App() {
   return (
-    <AppProvider>
-      <AppContent />
-    </AppProvider>
+    <ErrorBoundary>
+      <AppProvider>
+        <AppContent />
+      </AppProvider>
+    </ErrorBoundary>
   );
 }
