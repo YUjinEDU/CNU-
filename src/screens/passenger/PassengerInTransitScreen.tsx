@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { Navigation } from 'lucide-react';
 import { motion } from 'motion/react';
-import { findClosestPointOnRoute } from '../../lib/geoUtils';
+import { findClosestPointOnRoute, safeParseRoutePath } from '../../lib/geoUtils';
 import { MapComponent } from '../../components/MapComponent';
 import { useApp } from '../../contexts/AppContext';
 
@@ -10,7 +10,7 @@ export function PassengerInTransitScreen() {
   const passengerSearchCenter = pickupPoint || { lat: 36.355, lng: 127.345 };
 
   const calculatedPickup = useMemo(() => {
-    const routeToUse = selectedRoute?.path ? JSON.parse(selectedRoute.path) : [];
+    const routeToUse = safeParseRoutePath(selectedRoute?.path);
     return findClosestPointOnRoute(routeToUse, passengerSearchCenter);
   }, [selectedRoute, passengerSearchCenter]);
 
@@ -25,7 +25,7 @@ export function PassengerInTransitScreen() {
       <div className="flex-1 relative">
         <div className="absolute inset-0 bg-slate-200">
           <MapComponent
-            polylines={[selectedRoute?.path ? JSON.parse(selectedRoute.path) : []]}
+            polylines={[safeParseRoutePath(selectedRoute?.path)]}
             markers={[calculatedPickup]}
             center={calculatedPickup}
             zoom={14}

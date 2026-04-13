@@ -1,6 +1,19 @@
 import { Coordinate } from '../types';
 
 /**
+ * JSON 문자열을 Coordinate[]로 안전 파싱. 실패 시 빈 배열 반환.
+ */
+export function safeParseRoutePath(path: string | undefined | null): Coordinate[] {
+  if (!path) return [];
+  try {
+    const parsed = JSON.parse(path);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+/**
  * Haversine formula to calculate distance between two points in km
  */
 export function getDistance(p1: Coordinate, p2: Coordinate): number {

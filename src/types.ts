@@ -71,7 +71,6 @@ export type AppState =
   | 'SIGNUP'
   | 'HOME' 
   | 'DRIVER_SETUP' 
-  | 'DRIVER_CONFIRM' 
   | 'DRIVER_ACTIVE' 
   | 'DRIVER_MATCHED'
   | 'DRIVER_EN_ROUTE'

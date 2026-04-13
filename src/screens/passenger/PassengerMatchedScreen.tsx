@@ -1,7 +1,7 @@
 import { useMemo, useState, useEffect } from 'react';
 import { BadgeCheck, MapPin, ArrowRight } from 'lucide-react';
 import { motion } from 'motion/react';
-import { findClosestPointOnRoute } from '../../lib/geoUtils';
+import { findClosestPointOnRoute, safeParseRoutePath } from '../../lib/geoUtils';
 import { reverseGeocode } from '../../lib/naverApi';
 import { MapComponent } from '../../components/MapComponent';
 import { useApp } from '../../contexts/AppContext';
@@ -13,7 +13,7 @@ export function PassengerMatchedScreen() {
   const [pickupAddress, setPickupAddress] = useState('픽업 위치 확인 중...');
 
   const routePath = useMemo(() => {
-    return selectedRoute?.path ? JSON.parse(selectedRoute.path) : [];
+    return safeParseRoutePath(selectedRoute?.path);
   }, [selectedRoute]);
 
   const calculatedPickup = useMemo(() => {

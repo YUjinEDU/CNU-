@@ -2,7 +2,7 @@ import { useMemo, useEffect, useState } from 'react';
 import { Car, CheckCircle } from 'lucide-react';
 import { motion } from 'motion/react';
 import { Coordinate, LiveLocation } from '../../types';
-import { findClosestPointOnRoute } from '../../lib/geoUtils';
+import { findClosestPointOnRoute, safeParseRoutePath } from '../../lib/geoUtils';
 import { remainingDistance, formatDistance, estimateArrivalMinutes } from '../../lib/geofencing';
 import { subscribeToLocation } from '../../lib/locationService';
 import { MapComponent } from '../../components/MapComponent';
@@ -14,7 +14,7 @@ export function PassengerEnRouteScreen() {
   const [driverLocation, setDriverLocation] = useState<Coordinate | null>(null);
 
   const calculatedPickup = useMemo(() => {
-    const routeToUse = selectedRoute?.path ? JSON.parse(selectedRoute.path) : [];
+    const routeToUse = safeParseRoutePath(selectedRoute?.path);
     return findClosestPointOnRoute(routeToUse, passengerSearchCenter);
   }, [selectedRoute, passengerSearchCenter]);
 
@@ -45,7 +45,7 @@ export function PassengerEnRouteScreen() {
       <div className="flex-1 relative">
         <div className="absolute inset-0 bg-slate-200">
           <MapComponent
-            polylines={[selectedRoute?.path ? JSON.parse(selectedRoute.path) : []]}
+            polylines={[safeParseRoutePath(selectedRoute?.path)]}
             markers={mapMarkers}
             center={driverLocation || calculatedPickup}
             zoom={15}

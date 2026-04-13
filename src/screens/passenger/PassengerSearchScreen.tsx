@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { MapPin, Hand, Clock, Car, Users, ArrowRight, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Coordinate, Route } from '../../types';
-import { isRouteIntersectingCircle, findClosestPointOnRoute, getDistance } from '../../lib/geoUtils';
+import { isRouteIntersectingCircle, findClosestPointOnRoute, getDistance, safeParseRoutePath } from '../../lib/geoUtils';
 import { createRide } from '../../lib/localDb';
 import { MapComponent } from '../../components/MapComponent';
 import { useApp } from '../../contexts/AppContext';
@@ -18,7 +18,7 @@ export function PassengerSearchScreen() {
   const matchedRoutes = useMemo(() => {
     return availableRoutes
       .map(route => {
-        const path: Coordinate[] = JSON.parse(route.path);
+        const path: Coordinate[] = safeParseRoutePath(route.path);
         const intersects = isRouteIntersectingCircle(path, passengerCenter, walkingRadiusKm);
         if (!intersects) return null;
         const pickup = findClosestPointOnRoute(path, passengerCenter);
@@ -62,9 +62,9 @@ export function PassengerSearchScreen() {
             <MapComponent
               center={passengerCenter}
               zoom={14}
-              polylines={[JSON.parse(previewRoute.path)]}
+              polylines={[safeParseRoutePath(previewRoute.path)]}
               circles={[{ center: passengerCenter, radius: walkingRadius * 80, color: '#3b82f6' }]}
-              markers={[findClosestPointOnRoute(JSON.parse(previewRoute.path), passengerCenter)]}
+              markers={[findClosestPointOnRoute(safeParseRoutePath(previewRoute.path), passengerCenter)]}
             />
             <button
               onClick={() => setPreviewRoute(null)}

@@ -18,9 +18,10 @@ export function DriverActiveScreen() {
 
   const handleAccept = (rideId: string) => {
     updateRideStatus(rideId, 'accepted');
-    const ride = getRidesByDriver(localUid).find(r => r.id === rideId) ||
-      { ...pendingRides.find(r => r.id === rideId)!, status: 'accepted' as const };
-    setCurrentRide(ride);
+    const matched = pendingRides.find(r => r.id === rideId);
+    if (matched) {
+      setCurrentRide({ ...matched, status: 'accepted' });
+    }
     setState('DRIVER_MATCHED');
   };
 
