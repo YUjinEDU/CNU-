@@ -186,13 +186,13 @@ export function HomeScreen() {
             <Car className="w-8 h-8" />
           </div>
           <div className="text-left">
-            <h3 className="text-xl font-bold">🚗 출근길 빈자리 나눔 (운행)</h3>
+            <h3 className="text-xl font-bold">🚗 빈자리 나눔 (운행)</h3>
             <p className={`text-sm mt-1 ${(plateNumber && !restriction.canDrive) || hasActiveRoute || hasActiveRide ? 'text-slate-400' : 'text-blue-100/80'}`}>
               {hasActiveRoute || hasActiveRide
                 ? '이미 진행 중인 카풀이 있습니다'
                 : plateNumber && !restriction.canDrive
                   ? '오늘은 2부제 적용으로 운행이 불가합니다'
-                  : '같은 방향 동료와 함께 출근하기'}
+                  : '같은 방향 동료와 함께 이동하기'}
             </p>
           </div>
         </button>

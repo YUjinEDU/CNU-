@@ -1,32 +1,47 @@
 import { useState } from 'react';
-import { Search, Building, FlaskConical, Building2, Tractor } from 'lucide-react';
+import { Search, Building, FlaskConical, Building2, Tractor, MapPin, ArrowRightLeft } from 'lucide-react';
 import { motion } from 'motion/react';
 import { Coordinate } from '../../types';
 // import { MapComponent } from '../../components/MapComponent';  // 지도 비활성화
 import { AddressSearch } from '../../components/AddressSearch';
+import { CampusBuildingSelector } from '../../components/CampusBuildingSelector';
 import { useApp } from '../../contexts/AppContext';
 
 export function PassengerSetupScreen() {
-  const { user, setState, /* walkingRadius, setWalkingRadius, */ setPickupPoint } = useApp();
+  const { user, setState, setPickupPoint } = useApp();
+
+  // 출퇴근 모드
+  const [mode, setMode] = useState<'commute' | 'return'>('commute');
+
+  // 집 주소 (savedAddresses[0])
   const firstAddr = user?.savedAddresses?.[0];
   const hasValidCoord = firstAddr && firstAddr.lat !== 0 && firstAddr.lng !== 0;
-  const [pickupLocation, setPickupLocation] = useState(firstAddr?.name || '');
-  const [pickupCoords, setPickupCoords] = useState<Coordinate | null>(
+  const [homeLocation, setHomeLocation] = useState(firstAddr?.name || '');
+  const [homeCoords, setHomeCoords] = useState<Coordinate | null>(
     hasValidCoord ? { lat: firstAddr.lat, lng: firstAddr.lng } : null
   );
-  const [destinationZone, setDestinationZone] = useState('');
 
-  // const walkingRadiusMeters = walkingRadius * 80; // 약 80m/분  // 도보거리 비활성화
+  // 캠퍼스 권역
+  const [campusZone, setCampusZone] = useState('');
+
+  const zones = [
+    { id: 'eng', name: '공과대학 권역', icon: Building, desc: '1, 2, 3호관 주변' },
+    { id: 'sci', name: '자연과학대학 권역', icon: FlaskConical, desc: '기초과학관 주변' },
+    { id: 'hq', name: '대학본부 권역', icon: Building2, desc: '중앙도서관 방면' },
+    { id: 'agri', name: '농생대 권역', icon: Tractor, desc: '실험농장 주변' },
+    { id: 'other', name: '기타', icon: MapPin, desc: '캠퍼스 외 지역' },
+  ];
 
   const handleSearch = () => {
-    if (!destinationZone) {
-      alert('목적지 권역을 선택해주세요.');
+    if (!campusZone) {
+      alert('캠퍼스 권역을 선택해주세요.');
       return;
     }
-    // 좌표가 있으면 거리순 정렬에 사용, 없으면 전체 리스트 표시
-    if (pickupCoords) {
-      setPickupPoint(pickupCoords);
+    // 출근: 출발지=집, 목적지=캠퍼스  /  퇴근: 출발지=캠퍼스, 목적지=집
+    if (mode === 'commute' && homeCoords) {
+      setPickupPoint(homeCoords);
     }
+    // 퇴근 시에는 캠퍼스에서 출발하므로 pickupPoint 없음 (전체 리스트)
     setState('PASSENGER_SEARCH');
   };
 
@@ -38,89 +53,111 @@ export function PassengerSetupScreen() {
     >
       <h2 className="text-3xl font-extrabold text-primary-container tracking-tight">카풀 검색하기</h2>
 
-      {/* 지도 비활성화 — 교수님 요청
-      {pickupCoords && (
-        <div className="rounded-xl overflow-hidden h-48 bg-slate-200">
-          <MapComponent
-            center={pickupCoords}
-            zoom={15}
-            markers={[pickupCoords]}
-            circles={[{ center: pickupCoords, radius: walkingRadiusMeters, color: '#3b82f6' }]}
-          />
-        </div>
-      )}
-      */}
+      {/* 출근/퇴근 토글 */}
+      <div className="flex bg-surface-container-lowest rounded-xl p-1.5 shadow-sm">
+        <button
+          onClick={() => setMode('commute')}
+          className={`flex-1 py-3 rounded-lg font-bold text-sm transition-all ${
+            mode === 'commute' ? 'bg-primary-container text-white shadow-md' : 'text-on-surface-variant'
+          }`}
+        >
+          🌅 출근 (집 → 학교)
+        </button>
+        <button
+          onClick={() => setMode('return')}
+          className={`flex-1 py-3 rounded-lg font-bold text-sm transition-all ${
+            mode === 'return' ? 'bg-primary-container text-white shadow-md' : 'text-on-surface-variant'
+          }`}
+        >
+          🌆 퇴근 (학교 → 집)
+        </button>
+      </div>
 
       <div className="space-y-6">
+        {/* 출발지 */}
         <div className="bg-surface-container-lowest p-5 rounded-xl shadow-sm">
-          <label className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-3 block">내 출발 위치</label>
-          <AddressSearch
-            value={pickupLocation}
-            onAddressSelected={(result) => {
-              setPickupLocation(result.name);
-              if (result.lat !== 0) setPickupCoords({ lat: result.lat, lng: result.lng });
-            }}
-            placeholder="집 주소 검색 (카카오 우편번호)"
-          />
-          {pickupLocation && (
-            <p className="text-xs text-green-600 font-medium mt-2">
-              {pickupLocation}
-            </p>
+          <label className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-3 block">
+            {mode === 'commute' ? '내 출발 위치 (집)' : '출발 위치 (캠퍼스)'}
+          </label>
+          {mode === 'commute' ? (
+            <>
+              <AddressSearch
+                value={homeLocation}
+                onAddressSelected={(result) => {
+                  setHomeLocation(result.name);
+                  if (result.lat !== 0) setHomeCoords({ lat: result.lat, lng: result.lng });
+                }}
+                placeholder="집 주소 검색 (카카오 우편번호)"
+              />
+              {homeLocation && (
+                <p className="text-xs text-green-600 font-medium mt-2">{homeLocation}</p>
+              )}
+            </>
+          ) : (
+            <div className="grid grid-cols-2 gap-3">
+              {zones.map(zone => (
+                <button
+                  key={zone.id}
+                  onClick={() => setCampusZone(zone.name)}
+                  className={`flex flex-col items-start p-4 rounded-lg transition-all ${campusZone === zone.name ? 'bg-primary-container text-white' : 'bg-surface-container-low text-on-surface-variant hover:bg-primary-container/10'}`}
+                >
+                  <zone.icon className="w-5 h-5 mb-2" />
+                  <span className="font-bold text-sm">{zone.name}</span>
+                  <span className="text-[10px] opacity-70">{zone.desc}</span>
+                </button>
+              ))}
+            </div>
           )}
         </div>
 
+        {/* 목적지 */}
         <div className="bg-surface-container-lowest p-5 rounded-xl shadow-sm">
-          <label className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-4 block">목적지 권역 선택</label>
-          <div className="grid grid-cols-2 gap-3">
-            {[
-              { id: 'eng', name: '공과대학 권역', icon: Building, desc: '1, 2, 3호관 주변' },
-              { id: 'sci', name: '자연과학대학 권역', icon: FlaskConical, desc: '기초과학관 주변' },
-              { id: 'hq', name: '대학본부 권역', icon: Building2, desc: '중앙도서관 방면' },
-              { id: 'agri', name: '농생대 권역', icon: Tractor, desc: '실험농장 주변' },
-            ].map(zone => (
-              <button
-                key={zone.id}
-                onClick={() => setDestinationZone(zone.name)}
-                className={`flex flex-col items-start p-4 rounded-lg transition-all ${destinationZone === zone.name ? 'bg-primary-container text-white' : 'bg-surface-container-low text-on-surface-variant hover:bg-primary-container/10'}`}
-              >
-                <zone.icon className="w-5 h-5 mb-2" />
-                <span className="font-bold text-sm">{zone.name}</span>
-                <span className="text-[10px] opacity-70">{zone.desc}</span>
-              </button>
-            ))}
-          </div>
+          <label className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-4 block">
+            {mode === 'commute' ? '목적지 (캠퍼스 권역)' : '목적지 (집 방향)'}
+          </label>
+          {mode === 'commute' ? (
+            <div className="grid grid-cols-2 gap-3">
+              {zones.map(zone => (
+                <button
+                  key={zone.id}
+                  onClick={() => setCampusZone(zone.name)}
+                  className={`flex flex-col items-start p-4 rounded-lg transition-all ${campusZone === zone.name ? 'bg-primary-container text-white' : 'bg-surface-container-low text-on-surface-variant hover:bg-primary-container/10'}`}
+                >
+                  <zone.icon className="w-5 h-5 mb-2" />
+                  <span className="font-bold text-sm">{zone.name}</span>
+                  <span className="text-[10px] opacity-70">{zone.desc}</span>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <>
+              <AddressSearch
+                value={homeLocation}
+                onAddressSelected={(result) => {
+                  setHomeLocation(result.name);
+                  if (result.lat !== 0) setHomeCoords({ lat: result.lat, lng: result.lng });
+                }}
+                placeholder="집 주소 검색 (카카오 우편번호)"
+              />
+              {homeLocation && (
+                <p className="text-xs text-green-600 font-medium mt-2">{homeLocation}</p>
+              )}
+            </>
+          )}
         </div>
-
-        {/* 도보 거리 슬라이더 비활성화 — 교수님 요청
-        <div className="bg-surface-container-lowest p-6 rounded-xl shadow-sm text-center space-y-4">
-          <h3 className="text-lg font-extrabold text-primary-container">🏃‍♂️ 최대 도보 시간</h3>
-          <div className="flex justify-between px-2">
-            <span className={`text-xs font-bold px-3 py-1 rounded-full ${walkingRadius === 5 ? 'bg-primary-container text-white' : 'bg-slate-100 text-slate-400'}`}>5분</span>
-            <span className="text-2xl font-black text-primary-container">{walkingRadius}분</span>
-            <span className={`text-xs font-bold px-3 py-1 rounded-full ${walkingRadius === 15 ? 'bg-primary-container text-white' : 'bg-slate-100 text-slate-400'}`}>15분</span>
-          </div>
-          <input
-            type="range" min="5" max="15" step="1"
-            value={walkingRadius}
-            onChange={(e) => setWalkingRadius(parseInt(e.target.value))}
-            className="w-full h-2 bg-slate-200 rounded-full appearance-none accent-primary-container"
-          />
-          <p className="text-xs text-on-surface-variant">약 {walkingRadiusMeters}m 반경</p>
-        </div>
-        */}
       </div>
 
       <button
         onClick={handleSearch}
-        disabled={!destinationZone}
+        disabled={!campusZone}
         className={`w-full py-5 rounded-xl text-lg font-bold shadow-xl flex items-center justify-center gap-3 transition-all ${
-          destinationZone
+          campusZone
             ? 'bg-primary-container text-white active:scale-95'
             : 'bg-slate-300 text-slate-500 cursor-not-allowed'
         }`}
       >
         <Search className="w-6 h-6" />
-        내 주변 동승 차량 찾기
+        {mode === 'commute' ? '출근 카풀 찾기' : '퇴근 카풀 찾기'}
       </button>
     </motion.div>
   );
