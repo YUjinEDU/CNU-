@@ -1,9 +1,29 @@
-import { CheckCircle, MessageCircle, Navigation } from 'lucide-react';
+import { CheckCircle, MessageCircle } from 'lucide-react';
 import { motion } from 'motion/react';
+import { useState, useEffect } from 'react';
 import { useApp } from '../../contexts/AppContext';
+import { subscribeToRide } from '../../lib/firebaseDb';
 
 export function DriverMatchedScreen() {
-  const { setState, currentRide } = useApp();
+  const { setState, currentRide, setCurrentRide } = useApp();
+  const [liveRide, setLiveRide] = useState(currentRide);
+
+  useEffect(() => {
+    if (!currentRide?.id) return;
+    const unsubscribe = subscribeToRide(currentRide.id, ride => {
+      if (ride) {
+        setLiveRide(ride);
+        setCurrentRide(ride);
+      }
+    });
+    return unsubscribe;
+  }, [currentRide?.id, setCurrentRide]);
+
+  useEffect(() => {
+    if (liveRide?.status === 'cancelled' || liveRide?.status === 'completed') {
+      setState('HOME');
+    }
+  }, [liveRide?.status, setState]);
 
   return (
     <motion.div
@@ -23,12 +43,12 @@ export function DriverMatchedScreen() {
         <div className="flex items-center gap-4">
           <div className="w-16 h-16 rounded-full bg-primary-container/10 flex items-center justify-center">
             <span className="text-2xl font-bold text-primary-container">
-              {(currentRide?.passengerName || '?')[0]}
+              {(liveRide?.passengerName || '?')[0]}
             </span>
           </div>
           <div>
             <h3 className="text-xl font-bold text-primary-container">
-              {currentRide?.passengerName || '탑승자'}
+              {liveRide?.passengerName || '탑승자'}
             </h3>
             <p className="text-sm text-on-surface-variant">탑승 신청 수락됨</p>
           </div>
@@ -42,14 +62,6 @@ export function DriverMatchedScreen() {
         >
           <MessageCircle className="w-6 h-6" />
           채팅으로 픽업 위치 정하기
-        </button>
-
-        <button
-          onClick={() => setState('DRIVER_EN_ROUTE')}
-          className="w-full bg-surface-container-lowest text-primary-container py-4 rounded-xl font-bold text-base shadow-sm flex items-center justify-center gap-3 active:scale-95 transition-all"
-        >
-          <Navigation className="w-5 h-5" />
-          픽업 장소로 이동하기
         </button>
       </div>
     </motion.div>

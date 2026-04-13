@@ -41,7 +41,7 @@ export function useApp() {
 }
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
-  const [state, setState] = useState<AppState>('LOGIN');
+  const [state, setStateRaw] = useState<AppState>('LOGIN');
   const [user, setUser] = useState<User | null>(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
   const [walkingRadius, setWalkingRadius] = useState(10);
@@ -55,6 +55,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [driverRoute, setDriverRoute] = useState<Coordinate[]>([]);
   const [driverSourceCoord, setDriverSourceCoord] = useState<Coordinate | null>(null);
   const [driverDestCoord, setDriverDestCoord] = useState<Coordinate | null>(null);
+
+  // Wrapper to clear ride-related state on HOME navigation
+  const setState = (newState: AppState) => {
+    if (newState === 'HOME') {
+      setSelectedRoute(null);
+      setCurrentRide(null);
+      setCurrentRoute(null);
+      setPickupPoint(null);
+      setDriverSource('');
+      setDriverDest('');
+      setDriverRoute([]);
+      setDriverSourceCoord(null);
+      setDriverDestCoord(null);
+    }
+    setStateRaw(newState);
+  };
 
   // 세션 복구: 로그인 유지
   useEffect(() => {

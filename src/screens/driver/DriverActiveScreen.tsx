@@ -1,12 +1,14 @@
-import { useState, useEffect } from 'react';
-import { UserCheck, Bell, Check, X } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { UserCheck, Bell, Check, X, MapPin, Navigation } from 'lucide-react';
 import { motion } from 'motion/react';
 import { Ride } from '../../types';
-import { subscribeToRidesByDriver, updateRideStatus } from '../../lib/firebaseDb';
+import { subscribeToRidesByDriver, acceptRide, rejectRide, updateRouteStatus } from '../../lib/firebaseDb';
+import { sendSystemMessage } from '../../lib/chatService';
+import { getDistance } from '../../lib/geoUtils';
 import { useApp } from '../../contexts/AppContext';
 
 export function DriverActiveScreen() {
-  const { setState, user, driverSource, driverDest, setCurrentRide } = useApp();
+  const { setState, user, driverSource, driverDest, setCurrentRide, driverSourceCoord, currentRoute } = useApp();
   const [pendingRides, setPendingRides] = useState<Ride[]>([]);
 
   // 실시간 탑승 신청 구독
@@ -18,14 +20,36 @@ export function DriverActiveScreen() {
 
   const handleAccept = async (ride: Ride) => {
     if (!ride.id) return;
-    await updateRideStatus(ride.id, 'accepted');
-    setCurrentRide({ ...ride, status: 'accepted' });
-    setState('DRIVER_MATCHED');
+    try {
+      await acceptRide(ride.id, ride.routeId);
+      await sendSystemMessage(ride.id, '운전자가 탑승을 수락했습니다. 채팅으로 픽업 장소를 정해주세요!');
+      setCurrentRide({ ...ride, status: 'accepted' });
+      setState('DRIVER_MATCHED');
+    } catch (e: any) {
+      alert(e.message || '수락 중 오류가 발생했습니다.');
+    }
   };
 
-  const handleReject = async (rideId: string) => {
-    await updateRideStatus(rideId, 'cancelled');
+  const handleReject = async (ride: Ride) => {
+    if (!ride.id) return;
+    try {
+      await rejectRide(ride.id);
+      await sendSystemMessage(ride.id, '운전자가 탑승 신청을 거절했습니다.');
+    } catch (e: any) {
+      alert(e.message || '거절 중 오류가 발생했습니다.');
+    }
   };
+
+  const sortedRides = useMemo(() => {
+    if (!driverSourceCoord) return pendingRides;
+    return [...pendingRides].sort((a, b) => {
+      const distA = a.passengerDepartureCoord
+        ? getDistance(driverSourceCoord, a.passengerDepartureCoord) : Infinity;
+      const distB = b.passengerDepartureCoord
+        ? getDistance(driverSourceCoord, b.passengerDepartureCoord) : Infinity;
+      return distA - distB;
+    });
+  }, [pendingRides, driverSourceCoord]);
 
   return (
     <motion.div
@@ -66,7 +90,7 @@ export function DriverActiveScreen() {
       </div>
 
       {/* 탑승 신청 목록 */}
-      {pendingRides.length === 0 ? (
+      {sortedRides.length === 0 ? (
         <div className="text-center py-12 space-y-2">
           <UserCheck className="w-12 h-12 text-slate-300 mx-auto" />
           <p className="text-on-surface-variant font-medium">아직 탑승 신청이 없습니다</p>
@@ -76,9 +100,9 @@ export function DriverActiveScreen() {
         <div className="space-y-3">
           <div className="flex items-center gap-2">
             <Bell className="w-4 h-4 text-orange-500" />
-            <p className="text-sm font-bold text-on-surface">탑승 신청 {pendingRides.length}건</p>
+            <p className="text-sm font-bold text-on-surface">탑승 신청 {sortedRides.length}건</p>
           </div>
-          {pendingRides.map(ride => (
+          {sortedRides.map(ride => (
             <div key={ride.id} className="bg-white p-4 rounded-xl shadow-md border border-orange-200">
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-10 h-10 rounded-full bg-primary-container/10 flex items-center justify-center">
@@ -89,9 +113,34 @@ export function DriverActiveScreen() {
                   <p className="text-xs text-on-surface-variant">탑승 신청</p>
                 </div>
               </div>
+
+              {/* 상세 정보 */}
+              <div className="space-y-1.5 mb-3">
+                <div className="flex items-start gap-1.5">
+                  <MapPin className="w-3.5 h-3.5 text-blue-500 mt-0.5 shrink-0" />
+                  <p className="text-xs text-slate-600">
+                    {ride.passengerDepartureAddress || '주소 미등록'}
+                  </p>
+                </div>
+                {driverSourceCoord && ride.passengerDepartureCoord && (
+                  <div className="flex items-center gap-1.5">
+                    <Navigation className="w-3.5 h-3.5 text-green-500 shrink-0" />
+                    <span className="text-xs font-semibold text-green-600">
+                      약 {getDistance(driverSourceCoord, ride.passengerDepartureCoord).toFixed(1)}km
+                    </span>
+                  </div>
+                )}
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3.5 h-3.5 rounded-full border-2 border-primary-container shrink-0" />
+                  <p className="text-xs text-slate-600">
+                    목적지: {ride.passengerDestBuilding || '미등록'}
+                  </p>
+                </div>
+              </div>
+
               <div className="flex gap-2">
                 <button
-                  onClick={() => handleReject(ride.id!)}
+                  onClick={() => handleReject(ride)}
                   className="flex-1 bg-slate-100 text-slate-600 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-1"
                 >
                   <X className="w-4 h-4" /> 거절
@@ -107,6 +156,20 @@ export function DriverActiveScreen() {
           ))}
         </div>
       )}
+
+      {/* 운행 취소 */}
+      <button
+        onClick={async () => {
+          if (!confirm('운행을 취소하시겠습니까?')) return;
+          if (currentRoute?.id) {
+            try { await updateRouteStatus(currentRoute.id, 'cancelled'); } catch {}
+          }
+          setState('HOME');
+        }}
+        className="w-full py-3 text-red-500 font-bold text-sm"
+      >
+        운행 취소
+      </button>
     </motion.div>
   );
 }

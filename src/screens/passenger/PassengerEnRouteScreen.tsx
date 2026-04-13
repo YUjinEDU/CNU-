@@ -4,13 +4,14 @@ import { motion } from 'motion/react';
 import { Coordinate, LiveLocation } from '../../types';
 import { findClosestPointOnRoute, safeParseRoutePath } from '../../lib/geoUtils';
 import { remainingDistance, formatDistance, estimateArrivalMinutes } from '../../lib/geofencing';
-import { subscribeToLocation } from '../../lib/locationService';
-import { MapComponent } from '../../components/MapComponent';
+// import { subscribeToLocation } from '../../lib/locationService';  // GPS 비활성화
+// import { MapComponent } from '../../components/MapComponent';  // 지도 비활성화
 import { useApp } from '../../contexts/AppContext';
 
 export function PassengerEnRouteScreen() {
   const { setState, pickupPoint, selectedRoute } = useApp();
   const passengerSearchCenter = pickupPoint || { lat: 36.355, lng: 127.345 };
+  // GPS 비활성화 — 수동 도착 알림으로 전환
   const [driverLocation, setDriverLocation] = useState<Coordinate | null>(null);
 
   const calculatedPickup = useMemo(() => {
@@ -18,14 +19,14 @@ export function PassengerEnRouteScreen() {
     return findClosestPointOnRoute(routeToUse, passengerSearchCenter);
   }, [selectedRoute, passengerSearchCenter]);
 
-  // Subscribe to driver's real-time location
-  useEffect(() => {
-    if (!selectedRoute?.driverId) return;
-    const unsubscribe = subscribeToLocation(selectedRoute.driverId, (loc: LiveLocation | null) => {
-      if (loc) setDriverLocation({ lat: loc.lat, lng: loc.lng });
-    });
-    return unsubscribe;
-  }, [selectedRoute?.driverId]);
+  // GPS 비활성화 — 수동 도착 알림으로 전환
+  // useEffect(() => {
+  //   if (!selectedRoute?.driverId) return;
+  //   const unsubscribe = subscribeToLocation(selectedRoute.driverId, (loc: LiveLocation | null) => {
+  //     if (loc) setDriverLocation({ lat: loc.lat, lng: loc.lng });
+  //   });
+  //   return unsubscribe;
+  // }, [selectedRoute?.driverId]);
 
   const distToPickup = driverLocation ? remainingDistance(driverLocation, calculatedPickup) : null;
   const etaMinutes = distToPickup ? estimateArrivalMinutes(distToPickup) : null;
@@ -43,6 +44,7 @@ export function PassengerEnRouteScreen() {
       className="flex flex-col min-h-[calc(100vh-160px)]"
     >
       <div className="flex-1 relative">
+        {/* 지도 비활성화 — 교수님 요청
         <div className="absolute inset-0 bg-slate-200">
           <MapComponent
             polylines={[safeParseRoutePath(selectedRoute?.path)]}
@@ -51,6 +53,8 @@ export function PassengerEnRouteScreen() {
             zoom={15}
           />
         </div>
+        */}
+        <div className="absolute inset-0 bg-gradient-to-b from-blue-50 to-slate-100" />
 
         <div className="relative z-10 p-6 space-y-4">
           <div className="bg-white/90 backdrop-blur-md p-5 rounded-xl shadow-lg flex items-center gap-4">

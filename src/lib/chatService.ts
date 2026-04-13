@@ -24,6 +24,18 @@ export async function sendMessage(
   });
 }
 
+export async function sendSystemMessage(
+  rideId: string,
+  text: string
+): Promise<void> {
+  await addDoc(collection(db, 'chats', rideId, 'messages'), {
+    senderId: 'system',
+    senderName: '시스템',
+    text,
+    createdAt: new Date().toISOString(),
+  });
+}
+
 export function subscribeToMessages(
   rideId: string,
   callback: (messages: ChatMessage[]) => void

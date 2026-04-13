@@ -1,4 +1,4 @@
-import { Car, Users, BadgeCheck, Calendar, Rocket, Hand, AlertTriangle } from 'lucide-react';
+import { Car, Users, Calendar, Rocket, Hand, AlertTriangle } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useApp } from '../contexts/AppContext';
 import { getRestrictionMessage } from '../lib/vehicleUtils';
@@ -22,10 +22,6 @@ export function HomeScreen() {
             <h2 className="text-xl font-extrabold text-primary-container tracking-tight mb-1">{user?.name}</h2>
             <p className="text-sm text-on-surface-variant font-medium">{user?.department}</p>
           </div>
-          <span className="bg-blue-50 text-primary-container text-[11px] font-bold px-3 py-1.5 rounded-full flex items-center gap-1">
-            <BadgeCheck className="w-3 h-3 fill-current" />
-            SSO 인증 완료
-          </span>
         </div>
         {user?.vehicle ? (
           <div className="bg-surface-container-low rounded-lg p-3 flex items-center gap-3">
@@ -48,7 +44,7 @@ export function HomeScreen() {
         )}
       </section>
 
-      {/* 5부제 Banner */}
+      {/* 2부제 Banner */}
       {plateNumber ? (
         <div className={`px-5 py-4 rounded-xl flex items-center gap-4 border-l-4 ${
           restriction.canDrive
@@ -70,7 +66,7 @@ export function HomeScreen() {
           </div>
           <div>
             <p className="text-sm font-bold leading-tight">차량 번호가 등록되지 않았습니다.</p>
-            <p className="text-[11px] opacity-80 mt-0.5">프로필에서 차량 정보를 등록하면 5부제를 자동 확인합니다.</p>
+            <p className="text-[11px] opacity-80 mt-0.5">프로필에서 차량 정보를 등록하면 2부제를 자동 확인합니다.</p>
           </div>
         </div>
       )}
@@ -94,8 +90,8 @@ export function HomeScreen() {
             <h3 className="text-xl font-bold">🚗 출근길 빈자리 나눔 (운행)</h3>
             <p className={`text-sm mt-1 ${plateNumber && !restriction.canDrive ? 'text-slate-400' : 'text-blue-100/80'}`}>
               {plateNumber && !restriction.canDrive
-                ? '오늘은 5부제 적용으로 운행이 불가합니다'
-                : '연구실 동료 및 교직원과 함께 출근하기'}
+                ? '오늘은 2부제 적용으로 운행이 불가합니다'
+                : '같은 방향 동료와 함께 출근하기'}
             </p>
           </div>
         </button>

@@ -3,14 +3,17 @@ import { Navigation, MapPin } from 'lucide-react';
 import { motion } from 'motion/react';
 import { findClosestPointOnRoute } from '../../lib/geoUtils';
 import { hasArrived, remainingDistance, formatDistance, estimateArrivalMinutes } from '../../lib/geofencing';
-import { updateLocation } from '../../lib/locationService';
-import { useGeolocation } from '../../hooks/useGeolocation';
-import { MapComponent } from '../../components/MapComponent';
+// import { updateLocation } from '../../lib/locationService';  // GPS 비활성화
+// import { useGeolocation } from '../../hooks/useGeolocation';  // GPS 비활성화
+// import { MapComponent } from '../../components/MapComponent';  // 지도 비활성화
 import { useApp } from '../../contexts/AppContext';
 
 export function DriverEnRouteScreen() {
-  const { user, setState, driverRoute, localUid } = useApp();
-  const { position, heading, speed, startTracking, stopTracking, isTracking } = useGeolocation();
+  const { user, setState, driverRoute } = useApp();
+  // GPS 비활성화 — 수동 도착 알림으로 전환
+  // const { position, heading, speed, startTracking, stopTracking, isTracking } = useGeolocation();
+  const position = null;
+  const isTracking = false;
   const passengerSearchCenter = { lat: 36.355, lng: 127.345 };
 
   const calculatedPickup = useMemo(() => {
@@ -18,29 +21,29 @@ export function DriverEnRouteScreen() {
     return findClosestPointOnRoute(routeToUse, passengerSearchCenter);
   }, [driverRoute]);
 
-  // Start GPS tracking on mount
-  useEffect(() => {
-    startTracking();
-    return () => stopTracking();
-  }, [startTracking, stopTracking]);
+  // GPS 비활성화 — 수동 도착 알림으로 전환
+  // useEffect(() => {
+  //   startTracking();
+  //   return () => stopTracking();
+  // }, [startTracking, stopTracking]);
 
-  // Share location to Firestore every 5 seconds
-  const lastUpdateRef = useRef(0);
-  useEffect(() => {
-    if (!position || !user) return;
-    const now = Date.now();
-    if (now - lastUpdateRef.current < 5000) return;
-    lastUpdateRef.current = now;
-    updateLocation(localUid, position, heading, speed);
-  }, [position, user, heading, speed]);
+  // GPS 비활성화 — 수동 도착 알림으로 전환
+  // const lastUpdateRef = useRef(0);
+  // useEffect(() => {
+  //   if (!position || !user) return;
+  //   const now = Date.now();
+  //   if (now - lastUpdateRef.current < 5000) return;
+  //   lastUpdateRef.current = now;
+  //   updateLocation(localUid, position, heading, speed);
+  // }, [position, user, heading, speed]);
 
-  // Auto-detect arrival at pickup
-  useEffect(() => {
-    if (!position) return;
-    if (hasArrived(position, calculatedPickup)) {
-      setState('DRIVER_ARRIVED');
-    }
-  }, [position, calculatedPickup, setState]);
+  // GPS 비활성화 — 수동 도착 알림으로 전환
+  // useEffect(() => {
+  //   if (!position) return;
+  //   if (hasArrived(position, calculatedPickup)) {
+  //     setState('DRIVER_ARRIVED');
+  //   }
+  // }, [position, calculatedPickup, setState]);
 
   const distToPickup = position ? remainingDistance(position, calculatedPickup) : null;
   const etaMinutes = distToPickup ? estimateArrivalMinutes(distToPickup) : null;
@@ -52,6 +55,7 @@ export function DriverEnRouteScreen() {
       className="flex flex-col min-h-[calc(100vh-160px)]"
     >
       <div className="flex-1 relative">
+        {/* 지도 비활성화 — 교수님 요청
         <div className="absolute inset-0 bg-slate-200">
           <MapComponent
             polylines={driverRoute.length > 0 ? [driverRoute] : []}
@@ -60,6 +64,8 @@ export function DriverEnRouteScreen() {
             zoom={15}
           />
         </div>
+        */}
+        <div className="absolute inset-0 bg-gradient-to-b from-blue-50 to-slate-100" />
 
         <div className="relative z-10 p-6 space-y-4">
           <div className="bg-white/90 backdrop-blur-md p-5 rounded-xl shadow-lg flex items-center gap-4">

@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { Hand, Clock, Car, Users, ArrowRight, MapPin } from 'lucide-react';
 import { motion } from 'motion/react';
 import { Route } from '../../types';
-import { createRide } from '../../lib/firebaseDb';
+import { createRide, hasActiveRide } from '../../lib/firebaseDb';
 import { getDistance } from '../../lib/geoUtils';
 import { useApp } from '../../contexts/AppContext';
 
@@ -26,17 +26,29 @@ export function PassengerSearchScreen() {
     if (!user || !route.id) return;
     setApplying(route.id);
     try {
+      const active = await hasActiveRide(user.uid);
+      if (active) {
+        alert('이미 진행 중인 카풀이 있습니다. 기존 건을 취소 후 신청해주세요.');
+        return;
+      }
       const ride = await createRide({
         routeId: route.id,
         driverId: route.driverId,
+        driverName: route.driverName,
         passengerId: user.uid,
         passengerName: user.name,
         pickupCoord: route.sourceCoord ?? { lat: 36.3694, lng: 127.3448 },
+        passengerDepartureAddress: user.savedAddresses?.[0]?.name ?? '',
+        passengerDepartureCoord: pickupPoint ?? undefined,
+        passengerDestBuilding: user.savedAddresses?.[1]?.name ?? '',
         status: 'pending',
       });
       setCurrentRide(ride);
       setSelectedRoute(route);
       setState('PASSENGER_MATCHED');
+    } catch (e: unknown) {
+      const err = e as { message?: string };
+      alert(err.message || '신청 중 오류가 발생했습니다.');
     } finally {
       setApplying(null);
     }

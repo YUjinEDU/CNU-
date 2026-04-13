@@ -48,7 +48,7 @@ function AppContent() {
 
   return (
     <div className="min-h-screen bg-surface flex flex-col font-sans">
-      {!hideChrome && <TopAppBar title={state === 'HOME' ? 'CNU 교직원 카풀' : '카풀 서비스'} />}
+      {!hideChrome && <TopAppBar title={state === 'HOME' ? 'CNU 카풀' : '카풀 서비스'} />}
 
       <main className="flex-1 overflow-y-auto">
         <AnimatePresence mode="wait">
