@@ -9,6 +9,13 @@ export interface SavedAddress {
   lng: number;
 }
 
+export interface Vehicle {
+  plateNumber: string;       // "12가 3456"
+  model: string;             // "그랜저 하이브리드"
+  color: string;             // "화이트"
+  seatCapacity: number;      // 4
+}
+
 export interface User {
   uid: string;
   name: string;
@@ -16,6 +23,8 @@ export interface User {
   role: 'driver' | 'passenger' | 'both';
   isVerified: boolean;
   savedAddresses?: SavedAddress[];
+  vehicle?: Vehicle;
+  phone?: string;
   createdAt: any;
 }
 
@@ -23,11 +32,13 @@ export interface Route {
   id?: string;
   driverId: string;
   driverName: string;
-  vehicleInfo?: string;
-  plateNumber?: string;
+  vehicle?: Vehicle;
   departureTime?: string;
+  availableSeats?: number;
   sourceName: string;
+  sourceCoord?: Coordinate;
   destName: string;
+  destCoord?: Coordinate;
   path: string; // JSON stringified Coordinate[]
   status: 'active' | 'matched' | 'completed' | 'cancelled';
   createdAt: any;
@@ -36,12 +47,22 @@ export interface Route {
 export interface Ride {
   id?: string;
   routeId: string;
+  driverId: string;
   passengerId: string;
   passengerName: string;
-  pickupLat: number;
-  pickupLng: number;
-  status: 'pending' | 'accepted' | 'en_route' | 'in_transit' | 'completed' | 'cancelled';
+  pickupCoord: Coordinate;
+  pickupName?: string;
+  status: 'pending' | 'accepted' | 'pickup_negotiation' | 'en_route' | 'in_transit' | 'completed' | 'cancelled';
   createdAt: any;
+}
+
+export interface LiveLocation {
+  uid: string;
+  lat: number;
+  lng: number;
+  heading?: number;
+  speed?: number;
+  updatedAt: any;
 }
 
 export type AppState = 
