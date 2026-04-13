@@ -250,3 +250,49 @@ export async function hasActiveRide(passengerId: string): Promise<boolean> {
   }
   return false;
 }
+
+// ── 활성 상태 복원 ──
+
+export async function getMyActiveRoute(uid: string): Promise<Route | null> {
+  const q = query(
+    collection(db, 'routes'),
+    where('driverId', '==', uid),
+    where('status', '==', 'active')
+  );
+  const snap = await getDocs(q);
+  if (snap.empty) return null;
+  const d = snap.docs[0];
+  return { ...d.data(), id: d.id } as Route;
+}
+
+export async function getMyActiveRide(uid: string): Promise<Ride | null> {
+  const activeStatuses = ['pending', 'accepted', 'confirming', 'confirmed'];
+  // 탑승자로서
+  for (const status of activeStatuses) {
+    const q = query(
+      collection(db, 'rides'),
+      where('passengerId', '==', uid),
+      where('status', '==', status)
+    );
+    const snap = await getDocs(q);
+    if (!snap.empty) {
+      const d = snap.docs[0];
+      return { ...d.data(), id: d.id } as Ride;
+    }
+  }
+  // 운전자로서
+  for (const status of activeStatuses) {
+    if (status === 'pending') continue; // 운전자의 pending은 아직 수락 전
+    const q = query(
+      collection(db, 'rides'),
+      where('driverId', '==', uid),
+      where('status', '==', status)
+    );
+    const snap = await getDocs(q);
+    if (!snap.empty) {
+      const d = snap.docs[0];
+      return { ...d.data(), id: d.id } as Ride;
+    }
+  }
+  return null;
+}

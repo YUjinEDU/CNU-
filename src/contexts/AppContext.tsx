@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { AppState, User, Route, Ride, Coordinate } from '../types';
 import { getCurrentEmployeeId } from '../lib/authService';
-import { getUser, subscribeToActiveRoutes } from '../lib/firebaseDb';
+import { getUser, subscribeToActiveRoutes, getMyActiveRoute, getMyActiveRide, getRouteById } from '../lib/firebaseDb';
 
 interface AppContextType {
   state: AppState;
@@ -30,6 +30,7 @@ interface AppContextType {
   setDriverSourceCoord: (coord: Coordinate | null) => void;
   driverDestCoord: Coordinate | null;
   setDriverDestCoord: (coord: Coordinate | null) => void;
+  clearActiveCarpool: () => void;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -56,23 +57,28 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [driverSourceCoord, setDriverSourceCoord] = useState<Coordinate | null>(null);
   const [driverDestCoord, setDriverDestCoord] = useState<Coordinate | null>(null);
 
-  // Wrapper to clear ride-related state on HOME navigation
+  // Wrapper: HOME 이동 시 임시 UI 상태만 정리 (활성 카풀은 유지)
   const setState = (newState: AppState) => {
     if (newState === 'HOME') {
-      setSelectedRoute(null);
-      setCurrentRide(null);
-      setCurrentRoute(null);
       setPickupPoint(null);
       setDriverSource('');
       setDriverDest('');
       setDriverRoute([]);
       setDriverSourceCoord(null);
       setDriverDestCoord(null);
+      // currentRide, currentRoute, selectedRoute는 유지 — 홈 배너에서 사용
     }
     setStateRaw(newState);
   };
 
-  // 세션 복구: 로그인 유지
+  // 활성 카풀 완전 종료 시 호출 (completed, cancelled 등)
+  const clearActiveCarpool = () => {
+    setCurrentRide(null);
+    setCurrentRoute(null);
+    setSelectedRoute(null);
+  };
+
+  // 세션 복구: 로그인 유지 + 활성 카풀 복원
   useEffect(() => {
     async function init() {
       const employeeId = getCurrentEmployeeId();
@@ -80,12 +86,26 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const existingUser = await getUser(employeeId);
         if (existingUser) {
           setUser(existingUser);
-          setState('HOME');
+          // 활성 카풀 복원
+          const [activeRoute, activeRide] = await Promise.all([
+            getMyActiveRoute(employeeId),
+            getMyActiveRide(employeeId),
+          ]);
+          if (activeRoute) setCurrentRoute(activeRoute);
+          if (activeRide) {
+            setCurrentRide(activeRide);
+            // ride에 연결된 route도 복원
+            if (activeRide.routeId) {
+              const route = await getRouteById(activeRide.routeId);
+              if (route) setSelectedRoute(route);
+            }
+          }
+          setStateRaw('HOME');
         } else {
-          setState('LOGIN');
+          setStateRaw('LOGIN');
         }
       } else {
-        setState('LOGIN');
+        setStateRaw('LOGIN');
       }
       setIsAuthReady(true);
     }
@@ -114,6 +134,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       driverRoute, setDriverRoute,
       driverSourceCoord, setDriverSourceCoord,
       driverDestCoord, setDriverDestCoord,
+      clearActiveCarpool,
     }}>
       {children}
     </AppContext.Provider>

@@ -5,7 +5,7 @@ import { subscribeToRide, cancelRide } from '../../lib/firebaseDb';
 import { useApp } from '../../contexts/AppContext';
 
 export function PassengerMatchedScreen() {
-  const { setState, currentRide, selectedRoute, setCurrentRide, user } = useApp();
+  const { setState, currentRide, selectedRoute, setCurrentRide, user, clearActiveCarpool } = useApp();
   const [rideStatus, setRideStatus] = useState(currentRide?.status || 'pending');
 
   // 실시간 탑승 상태 구독
@@ -24,14 +24,17 @@ export function PassengerMatchedScreen() {
   useEffect(() => {
     if (rideStatus === 'rejected') {
       alert('운전자가 신청을 거절했습니다.');
+      clearActiveCarpool();
       setState('HOME');
     }
     if (rideStatus === 'cancelled') {
       alert('매칭이 취소되었습니다.');
+      clearActiveCarpool();
       setState('HOME');
     }
     if (rideStatus === 'completed') {
       alert('카풀이 완료되었습니다!');
+      clearActiveCarpool();
       setState('HOME');
     }
   }, [rideStatus]);

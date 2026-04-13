@@ -6,7 +6,7 @@ import { subscribeToRide, confirmRide, cancelRide, completeRide, updateRideField
 import { useApp } from '../contexts/AppContext';
 
 export function ChatRoom() {
-  const { user, currentRide, setCurrentRide, setState } = useApp();
+  const { user, currentRide, setCurrentRide, setState, clearActiveCarpool } = useApp();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isSending, setIsSending] = useState(false);
@@ -37,14 +37,17 @@ export function ChatRoom() {
     if (liveRide.status === 'cancelled') {
       const who = liveRide.cancelledBy === 'driver' ? '운전자' : '탑승자';
       alert(`${who}가 매칭을 취소했습니다.`);
+      clearActiveCarpool();
       setState('HOME');
     }
     if (liveRide.status === 'rejected') {
       alert('운전자가 신청을 거절했습니다.');
+      clearActiveCarpool();
       setState('HOME');
     }
     if (liveRide.status === 'completed') {
       alert('카풀이 완료되었습니다!');
+      clearActiveCarpool();
       setState('HOME');
     }
   }, [liveRide?.status]);

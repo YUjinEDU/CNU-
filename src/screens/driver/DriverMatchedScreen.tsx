@@ -5,7 +5,7 @@ import { useApp } from '../../contexts/AppContext';
 import { subscribeToRide } from '../../lib/firebaseDb';
 
 export function DriverMatchedScreen() {
-  const { setState, currentRide, setCurrentRide } = useApp();
+  const { setState, currentRide, setCurrentRide, clearActiveCarpool } = useApp();
   const [liveRide, setLiveRide] = useState(currentRide);
 
   useEffect(() => {
@@ -21,6 +21,7 @@ export function DriverMatchedScreen() {
 
   useEffect(() => {
     if (liveRide?.status === 'cancelled' || liveRide?.status === 'completed') {
+      clearActiveCarpool();
       setState('HOME');
     }
   }, [liveRide?.status, setState]);
