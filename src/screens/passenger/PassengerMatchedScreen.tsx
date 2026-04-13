@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { BadgeCheck, MessageCircle, Clock } from 'lucide-react';
 import { motion } from 'motion/react';
-import { subscribeToRide } from '../../lib/firebaseDb';
+import { subscribeToRide, updateRideStatus } from '../../lib/firebaseDb';
 import { useApp } from '../../contexts/AppContext';
 
 export function PassengerMatchedScreen() {
@@ -20,7 +20,23 @@ export function PassengerMatchedScreen() {
     return unsubscribe;
   }, [currentRide?.id]);
 
-  const isAccepted = rideStatus === 'accepted';
+  // 터미널 상태 자동 이동
+  useEffect(() => {
+    if (rideStatus === 'rejected') {
+      alert('운전자가 신청을 거절했습니다.');
+      setState('HOME');
+    }
+    if (rideStatus === 'cancelled') {
+      alert('매칭이 취소되었습니다.');
+      setState('HOME');
+    }
+    if (rideStatus === 'completed') {
+      alert('카풀이 완료되었습니다!');
+      setState('HOME');
+    }
+  }, [rideStatus]);
+
+  const showChat = ['accepted', 'confirming', 'confirmed'].includes(rideStatus);
 
   return (
     <motion.div
@@ -30,18 +46,18 @@ export function PassengerMatchedScreen() {
     >
       <div className="text-center space-y-2 mb-4">
         <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 transition-colors ${
-          isAccepted ? 'bg-green-100 text-green-600' : 'bg-blue-50 text-primary-container'
+          showChat ? 'bg-green-100 text-green-600' : 'bg-blue-50 text-primary-container'
         }`}>
-          {isAccepted
+          {showChat
             ? <BadgeCheck className="w-10 h-10" />
             : <Clock className="w-10 h-10 animate-pulse" />
           }
         </div>
         <h2 className="text-2xl font-extrabold text-primary-container tracking-tight">
-          {isAccepted ? '탑승이 수락되었습니다!' : '탑승 신청 완료'}
+          {showChat ? '탑승이 수락되었습니다!' : '탑승 신청 완료'}
         </h2>
         <p className="text-on-surface-variant">
-          {isAccepted
+          {showChat
             ? '채팅으로 픽업 위치를 정해보세요.'
             : '운전자가 신청을 확인하고 있습니다...'}
         </p>
@@ -71,7 +87,7 @@ export function PassengerMatchedScreen() {
       </div>
 
       {/* 수락된 경우: 채팅 버튼 */}
-      {isAccepted && (
+      {showChat && (
         <button
           onClick={() => setState('CHAT')}
           className="w-full bg-primary-container text-white py-5 rounded-xl font-bold text-lg shadow-lg flex items-center justify-center gap-3 active:scale-95 transition-all"
@@ -82,11 +98,30 @@ export function PassengerMatchedScreen() {
       )}
 
       {/* 대기 중 */}
-      {!isAccepted && (
+      {!showChat && (
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-center">
           <p className="text-amber-700 font-medium text-sm">운전자 수락 대기 중...</p>
           <p className="text-amber-600 text-xs mt-1">수락되면 채팅 버튼이 나타납니다</p>
         </div>
+      )}
+
+      {/* 신청 취소 버튼 (pending 상태에서만) */}
+      {rideStatus === 'pending' && (
+        <button
+          onClick={async () => {
+            if (!currentRide?.id) return;
+            if (!confirm('탑승 신청을 취소하시겠습니까?')) return;
+            try {
+              await updateRideStatus(currentRide.id, 'cancelled');
+              setState('HOME');
+            } catch (e: any) {
+              alert(e.message || '취소 중 오류가 발생했습니다.');
+            }
+          }}
+          className="w-full py-4 text-red-500 font-bold text-sm border border-red-200 rounded-xl"
+        >
+          신청 취소
+        </button>
       )}
     </motion.div>
   );
