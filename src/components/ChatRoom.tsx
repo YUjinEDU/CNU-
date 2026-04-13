@@ -130,10 +130,7 @@ export function ChatRoom() {
     if (!confirm('카풀을 완료하시겠습니까?')) return;
     try {
       await completeRide(rideId, liveRide.driverId, liveRide.passengerId);
-      // route도 완료 처리
-      if (liveRide.routeId) {
-        try { await updateRouteStatus(liveRide.routeId, 'completed'); } catch {}
-      }
+      // route는 active 유지 — 복수 탑승자 지원. 운전자가 직접 "운행 종료"로 닫음.
       await sendSystemMessage(rideId, '카풀이 완료되었습니다. 이용해 주셔서 감사합니다!');
       clearActiveCarpool();
       setState('HOME');
