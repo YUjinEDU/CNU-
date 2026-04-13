@@ -8,7 +8,7 @@ import { CampusBuildingSelector } from '../../components/CampusBuildingSelector'
 import { useApp } from '../../contexts/AppContext';
 
 export function PassengerSetupScreen() {
-  const { user, setState, setPickupPoint } = useApp();
+  const { user, setState, setPickupPoint, setSearchMode } = useApp();
 
   // 출퇴근 모드
   const [mode, setMode] = useState<'commute' | 'return'>('commute');
@@ -37,11 +37,11 @@ export function PassengerSetupScreen() {
       alert('캠퍼스 권역을 선택해주세요.');
       return;
     }
-    // 출근: 출발지=집, 목적지=캠퍼스  /  퇴근: 출발지=캠퍼스, 목적지=집
-    if (mode === 'commute' && homeCoords) {
+    // 양쪽 모두 집 좌표를 기준으로 정렬 (출근: sourceCoord, 퇴근: destCoord)
+    if (homeCoords) {
       setPickupPoint(homeCoords);
     }
-    // 퇴근 시에는 캠퍼스에서 출발하므로 pickupPoint 없음 (전체 리스트)
+    setSearchMode(mode);
     setState('PASSENGER_SEARCH');
   };
 

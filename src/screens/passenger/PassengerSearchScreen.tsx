@@ -7,20 +7,26 @@ import { getDistance } from '../../lib/geoUtils';
 import { useApp } from '../../contexts/AppContext';
 
 export function PassengerSearchScreen() {
-  const { setState, availableRoutes, setSelectedRoute, pickupPoint, user, setCurrentRide } = useApp();
+  const { setState, availableRoutes, setSelectedRoute, pickupPoint, user, setCurrentRide, searchMode } = useApp();
   const [applying, setApplying] = useState<string | null>(null);
+  const isReturn = searchMode === 'return';
 
-  // 승객 출발지 기준 거리순 → 거리 비슷하면 출발시간 빠른 순
+  // 출근: 내 집 ↔ 운전자 출발지(sourceCoord) 거리순
+  // 퇴근: 내 집 ↔ 운전자 도착지(destCoord) 거리순
   const sortedRoutes = useMemo(() => {
     return [...availableRoutes].sort((a, b) => {
-      if (pickupPoint && a.sourceCoord && b.sourceCoord) {
-        const distA = getDistance(pickupPoint, a.sourceCoord);
-        const distB = getDistance(pickupPoint, b.sourceCoord);
-        if (Math.abs(distA - distB) > 0.1) return distA - distB;
+      if (pickupPoint) {
+        const coordA = isReturn ? a.destCoord : a.sourceCoord;
+        const coordB = isReturn ? b.destCoord : b.sourceCoord;
+        if (coordA && coordB) {
+          const distA = getDistance(pickupPoint, coordA);
+          const distB = getDistance(pickupPoint, coordB);
+          if (Math.abs(distA - distB) > 0.1) return distA - distB;
+        }
       }
       return (a.departureTime ?? '').localeCompare(b.departureTime ?? '');
     });
-  }, [availableRoutes, pickupPoint]);
+  }, [availableRoutes, pickupPoint, isReturn]);
 
   const handleApply = async (route: Route) => {
     if (!user || !route.id) return;
@@ -65,7 +71,7 @@ export function PassengerSearchScreen() {
       <div className="px-2">
         <h2 className="text-2xl font-extrabold text-primary-container">검색 결과</h2>
         <p className="text-on-surface-variant text-sm font-medium">
-          {pickupPoint ? '내 출발지 기준 거리순' : '출발시간 빠른 순'} · {sortedRoutes.length}대
+          {pickupPoint ? (isReturn ? '내 집 방향 기준 거리순' : '내 출발지 기준 거리순') : '출발시간 빠른 순'} · {sortedRoutes.length}대
         </p>
       </div>
 
@@ -78,8 +84,9 @@ export function PassengerSearchScreen() {
       ) : (
         <div className="space-y-4">
           {sortedRoutes.map(route => {
-            const distKm = pickupPoint && route.sourceCoord
-              ? getDistance(pickupPoint, route.sourceCoord)
+            const compareCoord = isReturn ? route.destCoord : route.sourceCoord;
+            const distKm = pickupPoint && compareCoord
+              ? getDistance(pickupPoint, compareCoord)
               : null;
             const distText = distKm !== null
               ? distKm < 1
@@ -132,7 +139,7 @@ export function PassengerSearchScreen() {
                     {distText && (
                       <span className="bg-purple-50 text-purple-700 px-2.5 py-1 rounded-full flex items-center gap-1 font-bold">
                         <MapPin className="w-3 h-3" />
-                        출발지까지 {distText}
+                        {isReturn ? '집 방향' : '출발지까지'} {distText}
                       </span>
                     )}
                   </div>
