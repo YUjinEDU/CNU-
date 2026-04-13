@@ -120,9 +120,11 @@ export function PassengerSearchScreen() {
                         {route.vehicle.color} {route.vehicle.model}
                       </span>
                     )}
-                    <span className="bg-blue-50 text-primary-container px-2.5 py-1 rounded-full flex items-center gap-1 font-bold">
+                    <span className={`px-2.5 py-1 rounded-full flex items-center gap-1 font-bold ${
+                      (route.availableSeats ?? 1) > 0 ? 'bg-blue-50 text-primary-container' : 'bg-red-50 text-red-500'
+                    }`}>
                       <Hand className="w-3 h-3" />
-                      탑승 가능
+                      {(route.availableSeats ?? 1) > 0 ? '탑승 가능' : '좌석 마감'}
                     </span>
                     {route.availableSeats && (
                       <span className="bg-green-50 text-green-700 px-2.5 py-1 rounded-full flex items-center gap-1">
@@ -146,11 +148,15 @@ export function PassengerSearchScreen() {
 
                   <button
                     onClick={() => handleApply(route)}
-                    disabled={applying === route.id}
-                    className="w-full bg-primary-container text-white py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-60"
+                    disabled={applying === route.id || (route.availableSeats ?? 1) <= 0}
+                    className={`w-full py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all disabled:opacity-60 ${
+                      (route.availableSeats ?? 1) <= 0
+                        ? 'bg-slate-300 text-slate-500 cursor-not-allowed'
+                        : 'bg-primary-container text-white active:scale-95'
+                    }`}
                   >
-                    {applying === route.id ? '신청 중...' : '탑승 신청'}
-                    <ArrowRight className="w-4 h-4" />
+                    {applying === route.id ? '신청 중...' : (route.availableSeats ?? 1) <= 0 ? '좌석 마감' : '탑승 신청'}
+                    {(route.availableSeats ?? 1) > 0 && <ArrowRight className="w-4 h-4" />}
                   </button>
                 </div>
               </article>

@@ -56,6 +56,7 @@ export function SignupScreen() {
     try {
       const newUser = await signup(employeeId.trim(), password, userData);
       setUser(newUser);
+      alert(`${newUser.name}님, 가입을 환영합니다! 🎉`);
       setState('HOME');
     } catch (e: any) {
       setError(e.message || '가입 중 오류가 발생했습니다.');

@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { UserCheck, Bell, Check, X, MapPin, Navigation } from 'lucide-react';
 import { motion } from 'motion/react';
 import { Ride } from '../../types';
-import { subscribeToRidesByDriver, acceptRide, rejectRide, updateRouteStatus } from '../../lib/firebaseDb';
+import { subscribeToRidesByDriver, acceptRide, rejectRide, updateRouteStatus, getRouteById } from '../../lib/firebaseDb';
 import { sendSystemMessage } from '../../lib/chatService';
 import { getDistance } from '../../lib/geoUtils';
 import { useApp } from '../../contexts/AppContext';
@@ -10,6 +10,7 @@ import { useApp } from '../../contexts/AppContext';
 export function DriverActiveScreen() {
   const { setState, user, driverSource, driverDest, setCurrentRide, driverSourceCoord, currentRoute, clearActiveCarpool } = useApp();
   const [pendingRides, setPendingRides] = useState<Ride[]>([]);
+  const [remainingSeats, setRemainingSeats] = useState<number>(currentRoute?.availableSeats ?? 0);
 
   // 실시간 탑승 신청 구독
   useEffect(() => {
@@ -17,6 +18,16 @@ export function DriverActiveScreen() {
     const unsubscribe = subscribeToRidesByDriver(user.uid, setPendingRides);
     return unsubscribe;
   }, [user?.uid]);
+
+  // 좌석 수 실시간 갱신
+  useEffect(() => {
+    if (!currentRoute?.id) return;
+    const interval = setInterval(async () => {
+      const route = await getRouteById(currentRoute.id!);
+      if (route) setRemainingSeats(route.availableSeats ?? 0);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [currentRoute?.id]);
 
   const handleAccept = async (ride: Ride) => {
     if (!ride.id) return;
@@ -63,8 +74,10 @@ export function DriverActiveScreen() {
           <UserCheck className="w-6 h-6" />
         </div>
         <div className="flex-1">
-          <p className="text-sm opacity-80">매칭 대기 중</p>
-          <p className="text-base font-semibold">탑승 신청을 기다리는 중입니다...</p>
+          <p className="text-sm opacity-80">매칭 대기 중 · 잔여석 {remainingSeats}석</p>
+          <p className="text-base font-semibold">
+            {remainingSeats > 0 ? '탑승 신청을 기다리는 중입니다...' : '좌석이 마감되었습니다'}
+          </p>
         </div>
       </div>
 
@@ -145,12 +158,18 @@ export function DriverActiveScreen() {
                 >
                   <X className="w-4 h-4" /> 거절
                 </button>
-                <button
-                  onClick={() => handleAccept(ride)}
-                  className="flex-1 bg-[#2E7D32] text-white py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-1"
-                >
-                  <Check className="w-4 h-4" /> 수락
-                </button>
+                {remainingSeats > 0 ? (
+                  <button
+                    onClick={() => handleAccept(ride)}
+                    className="flex-1 bg-[#2E7D32] text-white py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-1"
+                  >
+                    <Check className="w-4 h-4" /> 수락
+                  </button>
+                ) : (
+                  <span className="flex-1 bg-slate-200 text-slate-500 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center">
+                    좌석 마감
+                  </span>
+                )}
               </div>
             </div>
           ))}
