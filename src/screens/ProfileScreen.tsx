@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { MapPin, Car, Settings, LogOut, ChevronRight, BarChart3, History } from 'lucide-react';
+import { MapPin, Car, Settings, LogOut, ChevronRight, BarChart3, History, MessageCircle } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useApp } from '../contexts/AppContext';
 import { logout } from '../lib/authService';
 import { Ride } from '../types';
 import { getRideHistory } from '../lib/firebaseDb';
+import { ChatHistoryModal } from '../components/ChatHistoryModal';
 
 export function ProfileScreen() {
   const { user, setUser, setState } = useApp();
   const [history, setHistory] = useState<Ride[]>([]);
+  const [selectedRide, setSelectedRide] = useState<Ride | null>(null);
 
   useEffect(() => {
     if (!user?.uid) return;
@@ -96,17 +98,29 @@ export function ProfileScreen() {
               const statusLabel = ride.status === 'completed' ? '완료' : ride.status === 'cancelled' ? '취소' : ride.status;
               const statusColor = ride.status === 'completed' ? 'text-green-600 bg-green-50' : 'text-red-500 bg-red-50';
               return (
-                <div key={ride.id} className="flex items-center gap-3 px-5 py-3">
-                  <div className={`text-xs font-bold px-2 py-1 rounded-full ${isDriver ? 'bg-blue-50 text-blue-600' : 'bg-green-50 text-green-600'}`}>
-                    {isDriver ? '운전' : '탑승'}
+                <div key={ride.id} className="px-5 py-3 space-y-2">
+                  <div className="flex items-center gap-3">
+                    <div className={`text-xs font-bold px-2 py-1 rounded-full ${isDriver ? 'bg-blue-50 text-blue-600' : 'bg-green-50 text-green-600'}`}>
+                      {isDriver ? '운전' : '탑승'}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-on-surface text-sm truncate">{otherName}</p>
+                      <p className="text-[10px] text-on-surface-variant">
+                        {date}
+                        {ride.passengerDepartureAddress && ` · ${ride.passengerDepartureAddress}`}
+                      </p>
+                    </div>
+                    <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${statusColor}`}>
+                      {statusLabel}
+                    </span>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-bold text-on-surface text-sm truncate">{otherName}</p>
-                    <p className="text-[10px] text-on-surface-variant">{date}</p>
-                  </div>
-                  <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${statusColor}`}>
-                    {statusLabel}
-                  </span>
+                  <button
+                    onClick={() => setSelectedRide(ride)}
+                    className="flex items-center gap-1.5 text-[11px] text-primary-container font-bold ml-9"
+                  >
+                    <MessageCircle className="w-3.5 h-3.5" />
+                    채팅 기록 보기
+                  </button>
                 </div>
               );
             })}
@@ -186,6 +200,15 @@ export function ProfileScreen() {
           <ChevronRight className="w-5 h-5" />
         </button>
       </div>
+
+      {/* 채팅 기록 모달 */}
+      {selectedRide?.id && (
+        <ChatHistoryModal
+          rideId={selectedRide.id}
+          title={`${selectedRide.driverId === user?.uid ? selectedRide.passengerName : (selectedRide.driverName || '운전자')} 님과의 대화`}
+          onClose={() => setSelectedRide(null)}
+        />
+      )}
     </motion.div>
   );
 }

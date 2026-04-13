@@ -3,6 +3,7 @@ import { Users, Car, MessageCircle, ArrowLeft, RefreshCw, CheckCircle, XCircle, 
 import { motion } from 'motion/react';
 import { useApp } from '../contexts/AppContext';
 import { getAllUsers, getActiveRoutes, getRideHistory } from '../lib/firebaseDb';
+import { ChatHistoryModal } from '../components/ChatHistoryModal';
 import { User, Route, Ride } from '../types';
 import { collection, getDocs, query, orderBy, limit } from 'firebase/firestore';
 import { db } from '../firebase';
@@ -14,6 +15,7 @@ export function AdminScreen() {
   const [routes, setRoutes] = useState<Route[]>([]);
   const [rides, setRides] = useState<Ride[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedRide, setSelectedRide] = useState<Ride | null>(null);
 
   const loadData = async () => {
     setLoading(true);
@@ -230,11 +232,33 @@ export function AdminScreen() {
                   {r.cancelledBy && (
                     <p className="text-[10px] text-red-500 mt-0.5">{r.cancelledBy === 'driver' ? '운전자' : '탑승자'} 취소</p>
                   )}
+                  {r.passengerDepartureAddress && (
+                    <p className="text-[10px] text-on-surface-variant mt-0.5">출발: {r.passengerDepartureAddress}</p>
+                  )}
+                  {r.passengerDestBuilding && (
+                    <p className="text-[10px] text-on-surface-variant">목적지: {r.passengerDestBuilding}</p>
+                  )}
+                  <button
+                    onClick={() => setSelectedRide(r)}
+                    className="flex items-center gap-1 text-[11px] text-primary-container font-bold mt-2"
+                  >
+                    <MessageCircle className="w-3.5 h-3.5" />
+                    채팅 기록 보기
+                  </button>
                 </div>
               ))}
             </div>
           )}
         </>
+      )}
+
+      {/* 채팅 기록 모달 */}
+      {selectedRide?.id && (
+        <ChatHistoryModal
+          rideId={selectedRide.id}
+          title={`${selectedRide.driverName || '운전자'} ↔ ${selectedRide.passengerName}`}
+          onClose={() => setSelectedRide(null)}
+        />
       )}
     </motion.div>
   );
