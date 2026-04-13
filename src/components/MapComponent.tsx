@@ -131,9 +131,12 @@ export const MapComponent: React.FC<MapComponentProps> = ({
 
   if (error || !import.meta.env.VITE_NAVER_CLIENT_ID) {
     return (
-      <div className="w-full h-full bg-slate-200 flex items-center justify-center flex-col p-4 text-center">
-        <p className="text-slate-500 font-medium mb-2">네이버 지도 API 키가 필요합니다.</p>
-        <p className="text-xs text-slate-400">.env 파일에 VITE_NAVER_CLIENT_ID를 설정해주세요.</p>
+      <div className="w-full h-full bg-slate-100 flex items-center justify-center flex-col p-4 text-center rounded-xl border-2 border-dashed border-slate-300">
+        <div className="text-3xl mb-2">🗺️</div>
+        <p className="text-slate-500 font-medium text-sm mb-1">지도 로딩 대기 중</p>
+        <p className="text-[10px] text-slate-400 max-w-[200px]">
+          {error || 'NCP 콘솔에서 Web 서비스 URL 반영까지 최대 10분 소요'}
+        </p>
       </div>
     );
   }
