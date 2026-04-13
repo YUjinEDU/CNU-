@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { ArrowLeft, Send, MessageCircle, MapPin, Car } from 'lucide-react';
 import { motion } from 'motion/react';
 import { sendMessage, subscribeToMessages, sendSystemMessage, ChatMessage } from '../lib/chatService';
-import { subscribeToRide, confirmRide, cancelRide, completeRide, updateRideField } from '../lib/firebaseDb';
+import { subscribeToRide, confirmRide, cancelRide, completeRide, updateRideField, updateRouteStatus } from '../lib/firebaseDb';
 import { useApp } from '../contexts/AppContext';
 
 export function ChatRoom() {
@@ -130,6 +130,10 @@ export function ChatRoom() {
     if (!confirm('카풀을 완료하시겠습니까?')) return;
     try {
       await completeRide(rideId, liveRide.driverId, liveRide.passengerId);
+      // route도 완료 처리
+      if (liveRide.routeId) {
+        try { await updateRouteStatus(liveRide.routeId, 'completed'); } catch {}
+      }
       await sendSystemMessage(rideId, '카풀이 완료되었습니다. 이용해 주셔서 감사합니다!');
       clearActiveCarpool();
       setState('HOME');
