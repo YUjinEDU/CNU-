@@ -14,6 +14,8 @@ export function PassengerInTransitScreen() {
     return findClosestPointOnRoute(routeToUse, passengerSearchCenter);
   }, [selectedRoute, passengerSearchCenter]);
 
+  const destName = selectedRoute?.destName || '목적지';
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -37,7 +39,7 @@ export function PassengerInTransitScreen() {
             </div>
             <div className="flex-1">
               <p className="text-sm font-bold text-on-surface-variant">목적지로 이동 중</p>
-              <p className="text-lg font-extrabold text-primary-container">공과대학 1호관</p>
+              <p className="text-lg font-extrabold text-primary-container">{destName}</p>
             </div>
           </div>
         </div>

@@ -1,9 +1,18 @@
+import { useMemo } from 'react';
 import { Bell, Phone, CheckCircle } from 'lucide-react';
 import { motion } from 'motion/react';
+import { getUser } from '../../lib/localDb';
 import { useApp } from '../../contexts/AppContext';
 
 export function DriverArrivedScreen() {
-  const { setState } = useApp();
+  const { setState, currentRide } = useApp();
+
+  const passengerUser = useMemo(() => {
+    return currentRide ? getUser(currentRide.passengerId) : null;
+  }, [currentRide]);
+
+  const name = passengerUser?.name || currentRide?.passengerName || '탑승자';
+  const dept = passengerUser?.department || '';
 
   return (
     <motion.div
@@ -21,16 +30,18 @@ export function DriverArrivedScreen() {
 
         <div className="bg-surface-container-lowest p-6 rounded-xl shadow-sm w-full mt-8 border border-primary-container/10">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-primary-container/20">
-              <img src="https://picsum.photos/seed/passenger/150/150" alt="Passenger" className="w-full h-full object-cover" />
+            <div className="w-12 h-12 rounded-full bg-primary-container/10 flex items-center justify-center">
+              <span className="text-xl font-bold text-primary-container">{name[0]}</span>
             </div>
             <div className="text-left">
-              <h3 className="text-lg font-bold text-primary-container">이*민 주무관</h3>
-              <p className="text-sm text-on-surface-variant">학생처 장학팀</p>
+              <h3 className="text-lg font-bold text-primary-container">{name}</h3>
+              {dept && <p className="text-sm text-on-surface-variant">{dept}</p>}
             </div>
-            <button className="ml-auto w-10 h-10 rounded-full bg-blue-50 text-primary-container flex items-center justify-center">
-              <Phone className="w-5 h-5" />
-            </button>
+            {passengerUser?.phone && (
+              <a href={`tel:${passengerUser.phone}`} className="ml-auto w-10 h-10 rounded-full bg-blue-50 text-primary-container flex items-center justify-center">
+                <Phone className="w-5 h-5" />
+              </a>
+            )}
           </div>
         </div>
       </div>
