@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useCallback } from 'react';
+import React, { useRef, useEffect, useCallback, useState } from 'react';
 import { Coordinate } from '../types';
 import { useNaverMaps } from '../hooks/useNaverMaps';
 import { getDirections } from '../lib/naverApi';
@@ -29,16 +29,17 @@ export const MapComponent: React.FC<MapComponentProps> = ({
   const { isLoaded, error } = useNaverMaps();
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<naver.maps.Map | null>(null);
-  const overlaysRef = useRef<Array<naver.maps.Marker | naver.maps.Polyline | naver.maps.Circle>>([]);
+  const overlaysRef = useRef<Array<{ setMap: (map: null) => void }>>([]);
+  const [mapReady, setMapReady] = useState(false);
 
-  // 매번 새 DOM이면 map을 새로 생성
+  // Initialize map — 성공해야만 mapReady=true
   useEffect(() => {
     if (!isLoaded || !containerRef.current) return;
-
     mapRef.current = null;
+    setMapReady(false);
 
     try {
-      mapRef.current = new naver.maps.Map(containerRef.current, {
+      const map = new naver.maps.Map(containerRef.current, {
         center: new naver.maps.LatLng(center.lat, center.lng),
         zoom,
         zoomControl: true,
@@ -48,80 +49,86 @@ export const MapComponent: React.FC<MapComponentProps> = ({
         logoControl: true,
         mapDataControl: false,
       });
-    } catch (err) {
-      console.warn('Map init failed:', err);
+      mapRef.current = map;
+      // 100ms 후에 Map이 정상 동작하면 ready
+      setTimeout(() => {
+        if (mapRef.current) setMapReady(true);
+      }, 100);
+    } catch {
+      setMapReady(false);
     }
 
     return () => {
-      try {
-        overlaysRef.current.forEach(o => o.setMap(null));
-      } catch { /* ignore */ }
+      overlaysRef.current.forEach(o => { try { o.setMap(null); } catch {} });
       overlaysRef.current = [];
       mapRef.current = null;
+      setMapReady(false);
     };
   }, [isLoaded]);
 
   // Update center/zoom
   useEffect(() => {
-    if (!mapRef.current) return;
-    mapRef.current.setCenter(new naver.maps.LatLng(center.lat, center.lng));
-    mapRef.current.setZoom(zoom);
-  }, [center.lat, center.lng, zoom]);
+    if (!mapReady || !mapRef.current) return;
+    try {
+      mapRef.current.setCenter(new naver.maps.LatLng(center.lat, center.lng));
+      mapRef.current.setZoom(zoom);
+    } catch {}
+  }, [center.lat, center.lng, zoom, mapReady]);
 
-  // Clear all overlays
   const clearOverlays = useCallback(() => {
-    overlaysRef.current.forEach(o => o.setMap(null));
+    overlaysRef.current.forEach(o => { try { o.setMap(null); } catch {} });
     overlaysRef.current = [];
   }, []);
 
-  // Draw markers, polylines, circles
+  // Draw overlays — mapReady가 아니면 절대 실행 안 함
   useEffect(() => {
-    if (!mapRef.current || !isLoaded) return;
+    if (!mapReady || !mapRef.current) return;
     clearOverlays();
     const map = mapRef.current;
+
     try {
-
-    markers.forEach(coord => {
-      const marker = new naver.maps.Marker({
-        position: new naver.maps.LatLng(coord.lat, coord.lng),
-        map,
+      markers.forEach(coord => {
+        const marker = new naver.maps.Marker({
+          position: new naver.maps.LatLng(coord.lat, coord.lng),
+          map,
+        });
+        overlaysRef.current.push(marker);
       });
-      overlaysRef.current.push(marker);
-    });
 
-    polylines.forEach(path => {
-      if (path.length < 2) return;
-      const polyline = new naver.maps.Polyline({
-        map,
-        path: path.map(p => new naver.maps.LatLng(p.lat, p.lng)),
-        strokeColor: '#003E7A',
-        strokeOpacity: 0.8,
-        strokeWeight: 5,
-        strokeLineCap: 'round',
-        strokeLineJoin: 'round',
+      polylines.forEach(path => {
+        if (path.length < 2) return;
+        const polyline = new naver.maps.Polyline({
+          map,
+          path: path.map(p => new naver.maps.LatLng(p.lat, p.lng)),
+          strokeColor: '#003E7A',
+          strokeOpacity: 0.8,
+          strokeWeight: 5,
+          strokeLineCap: 'round',
+          strokeLineJoin: 'round',
+        });
+        overlaysRef.current.push(polyline);
       });
-      overlaysRef.current.push(polyline);
-    });
 
-    circles.forEach(c => {
-      const circle = new naver.maps.Circle({
-        map,
-        center: new naver.maps.LatLng(c.center.lat, c.center.lng),
-        radius: c.radius,
-        fillColor: c.color || '#3b82f6',
-        fillOpacity: 0.15,
-        strokeColor: c.color || '#3b82f6',
-        strokeOpacity: 0.6,
-        strokeWeight: 2,
+      circles.forEach(c => {
+        const circle = new naver.maps.Circle({
+          map,
+          center: new naver.maps.LatLng(c.center.lat, c.center.lng),
+          radius: c.radius,
+          fillColor: c.color || '#3b82f6',
+          fillOpacity: 0.15,
+          strokeColor: c.color || '#3b82f6',
+          strokeOpacity: 0.6,
+          strokeWeight: 2,
+        });
+        overlaysRef.current.push(circle);
       });
-      overlaysRef.current.push(circle);
-    });
     } catch (err) {
-      console.warn('Map overlay error:', err);
+      console.warn('Map overlay error (ignored):', err);
+      // 오버레이 실패해도 앱은 크래시하지 않음
     }
-  }, [isLoaded, markers, polylines, circles, clearOverlays]);
+  }, [mapReady, markers, polylines, circles, clearOverlays]);
 
-  // Fetch route when origin/dest coords change
+  // Route calculation
   useEffect(() => {
     if (!originCoord || !destCoord) return;
     getDirections(originCoord, destCoord)
