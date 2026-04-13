@@ -16,6 +16,13 @@ export interface Vehicle {
   seatCapacity: number;      // 4
 }
 
+export interface UserStats {
+  totalRides: number;
+  driveCount: number;
+  rideCount: number;
+  cancelCount: number;
+}
+
 export interface User {
   uid: string;
   name: string;
@@ -27,6 +34,7 @@ export interface User {
   savedAddresses?: SavedAddress[];
   vehicle?: Vehicle;
   phone?: string;
+  stats?: UserStats;
   createdAt: any;
 }
 
@@ -52,9 +60,17 @@ export interface Ride {
   driverId: string;
   passengerId: string;
   passengerName: string;
+  driverName?: string;
   pickupCoord: Coordinate;
   pickupName?: string;
-  status: 'pending' | 'accepted' | 'pickup_negotiation' | 'en_route' | 'in_transit' | 'completed' | 'cancelled';
+  status: 'pending' | 'accepted' | 'pickup_negotiation' | 'en_route' | 'in_transit' | 'confirming' | 'confirmed' | 'completed' | 'rejected' | 'cancelled';
+  driverConfirmed?: boolean;
+  passengerConfirmed?: boolean;
+  cancelledBy?: 'driver' | 'passenger';
+  passengerDepartureAddress?: string;
+  passengerDepartureCoord?: Coordinate;
+  passengerDestBuilding?: string;
+  completedAt?: string;
   createdAt: any;
 }
 
