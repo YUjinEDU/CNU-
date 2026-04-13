@@ -39,7 +39,6 @@ export function DriverSetupScreen() {
     if (!canStart || !user) return;
     setIsSubmitting(true);
     try {
-      // 경로 좌표가 없으면 빈 배열로 등록 (매칭은 출발지/도착지 이름 기준)
       setDriverRoute([]);
       const route = await createRoute({
         driverId: user.uid,
@@ -56,6 +55,8 @@ export function DriverSetupScreen() {
       });
       setCurrentRoute(route);
       setState('DRIVER_ACTIVE');
+    } catch (e: any) {
+      alert(e.message || '운행 등록 중 오류가 발생했습니다. 다시 시도해주세요.');
     } finally {
       setIsSubmitting(false);
     }
