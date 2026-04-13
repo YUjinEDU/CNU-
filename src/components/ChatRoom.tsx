@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { ArrowLeft, Send, MessageCircle, MapPin } from 'lucide-react';
+import { ArrowLeft, Send, MessageCircle, MapPin, Car } from 'lucide-react';
 import { motion } from 'motion/react';
 import { sendMessage, subscribeToMessages, sendSystemMessage, ChatMessage } from '../lib/chatService';
 import { subscribeToRide, confirmRide, cancelRide, completeRide, updateRideField } from '../lib/firebaseDb';
@@ -60,15 +60,21 @@ export function ChatRoom() {
   const iConfirmed = myRole === 'driver' ? liveRide?.driverConfirmed : liveRide?.passengerConfirmed;
   const otherArrived = myRole === 'driver' ? liveRide?.passengerArrived : liveRide?.driverArrived;
   const iArrived = myRole === 'driver' ? liveRide?.driverArrived : liveRide?.passengerArrived;
+  const iBoarded = myRole === 'driver' ? liveRide?.driverBoarded : liveRide?.passengerBoarded;
+  const otherBoarded = myRole === 'driver' ? liveRide?.passengerBoarded : liveRide?.driverBoarded;
   const status = liveRide?.status;
   const [showArrivalPopup, setShowArrivalPopup] = useState(false);
 
   // 상대방 도착 감지 → 팝업
   useEffect(() => {
-    if (otherArrived) {
-      setShowArrivalPopup(true);
-    }
+    if (otherArrived) setShowArrivalPopup(true);
   }, [otherArrived]);
+
+  // 상대방 탑승 감지 → 팝업
+  const [showBoardedPopup, setShowBoardedPopup] = useState(false);
+  useEffect(() => {
+    if (otherBoarded) setShowBoardedPopup(true);
+  }, [otherBoarded]);
 
   const handleConfirm = async () => {
     if (!rideId || !user) return;
@@ -105,6 +111,17 @@ export function ChatRoom() {
       await sendSystemMessage(rideId, `${user.name}님이 약속 장소에 도착했습니다!`);
     } catch (e: any) {
       alert(e.message || '도착 알림 전송 중 오류가 발생했습니다.');
+    }
+  };
+
+  const handleBoarded = async () => {
+    if (!rideId || !user) return;
+    try {
+      const field = myRole === 'driver' ? 'driverBoarded' : 'passengerBoarded';
+      await updateRideField(rideId, { [field]: true });
+      await sendSystemMessage(rideId, `${user.name}님이 차량에 탑승했습니다!`);
+    } catch (e: any) {
+      alert(e.message || '탑승 알림 전송 중 오류가 발생했습니다.');
     }
   };
 
@@ -182,6 +199,26 @@ export function ChatRoom() {
         </div>
       )}
 
+      {/* 상대방 탑승 팝업 */}
+      {showBoardedPopup && (
+        <div className="px-4 py-3 bg-orange-50 border-b border-orange-200 flex items-center gap-3">
+          <div className="bg-orange-500 text-white p-2 rounded-full animate-bounce">
+            <Car className="w-5 h-5" />
+          </div>
+          <div className="flex-1">
+            <p className="font-bold text-orange-800 text-sm">
+              {myRole === 'driver' ? '탑승자' : '운전자'}가 차량에 탑승했습니다!
+            </p>
+          </div>
+          <button
+            onClick={() => setShowBoardedPopup(false)}
+            className="text-orange-600 font-bold text-xs px-3 py-1.5 bg-orange-100 rounded-full"
+          >
+            확인
+          </button>
+        </div>
+      )}
+
       {/* 상단 액션 바 */}
       {status && status !== 'completed' && status !== 'cancelled' && status !== 'rejected' && status !== 'pending' && (
         <div className="px-4 py-2.5 bg-white border-b border-slate-100 shadow-sm">
@@ -225,6 +262,17 @@ export function ChatRoom() {
                   }`}
                 >
                   {iArrived ? '도착 완료 ✓' : '도착했어요 📍'}
+                </button>
+                <button
+                  onClick={handleBoarded}
+                  disabled={!!iBoarded}
+                  className={`flex-1 py-2.5 rounded-xl text-sm font-bold active:scale-95 transition-all ${
+                    iBoarded
+                      ? 'bg-orange-100 text-orange-600'
+                      : 'bg-orange-500 text-white'
+                  }`}
+                >
+                  {iBoarded ? '탑승 완료 ✓' : '탑승했어요 🚗'}
                 </button>
                 <button
                   onClick={handleComplete}

@@ -69,6 +69,8 @@ export interface Ride {
   cancelledBy?: 'driver' | 'passenger';
   driverArrived?: boolean;
   passengerArrived?: boolean;
+  driverBoarded?: boolean;
+  passengerBoarded?: boolean;
   passengerDepartureAddress?: string;
   passengerDepartureCoord?: Coordinate;
   passengerDestBuilding?: string;

@@ -4,7 +4,7 @@ import { useApp } from '../contexts/AppContext';
 import { getRestrictionMessage } from '../lib/vehicleUtils';
 
 export function HomeScreen() {
-  const { user, setState, currentRoute, currentRide, selectedRoute } = useApp();
+  const { user, setState, currentRoute, currentRide, selectedRoute, clearActiveCarpool } = useApp();
 
   const plateNumber = user?.vehicle?.plateNumber || '';
   const restriction = getRestrictionMessage(plateNumber);
@@ -100,22 +100,39 @@ export function HomeScreen() {
 
       {/* 운행 등록 중 배너 (ride 없이 route만 있을 때) */}
       {hasActiveRoute && !hasActiveRide && (
-        <button
-          onClick={() => setState('DRIVER_ACTIVE')}
-          className="w-full bg-blue-50 border-2 border-blue-300 rounded-xl p-5 flex items-center gap-4 active:scale-[0.98] transition-all"
-        >
-          <div className="bg-primary-container text-white p-3 rounded-full">
-            <Car className="w-6 h-6" />
-          </div>
-          <div className="flex-1 text-left">
-            <p className="font-bold text-blue-800">운행 모집 중</p>
-            <p className="text-xs text-blue-600 mt-1">
-              {currentRoute.sourceName} → {currentRoute.destName}
-              {currentRoute.departureTime && ` · ${currentRoute.departureTime} 출발`}
-            </p>
-          </div>
-          <span className="text-blue-600 font-bold text-sm">보기 →</span>
-        </button>
+        <div className="bg-blue-50 border-2 border-blue-300 rounded-xl p-5 space-y-3">
+          <button
+            onClick={() => setState('DRIVER_ACTIVE')}
+            className="w-full flex items-center gap-4 active:scale-[0.98] transition-all"
+          >
+            <div className="bg-primary-container text-white p-3 rounded-full">
+              <Car className="w-6 h-6" />
+            </div>
+            <div className="flex-1 text-left">
+              <p className="font-bold text-blue-800">운행 모집 중</p>
+              <p className="text-xs text-blue-600 mt-1">
+                {currentRoute.sourceName} → {currentRoute.destName}
+                {currentRoute.departureTime && ` · ${currentRoute.departureTime} 출발`}
+              </p>
+            </div>
+            <span className="text-blue-600 font-bold text-sm">보기 →</span>
+          </button>
+          <button
+            onClick={async () => {
+              if (!confirm('운행 모집을 취소하시겠습니까?')) return;
+              if (currentRoute.id) {
+                try {
+                  const { updateRouteStatus } = await import('../lib/firebaseDb');
+                  await updateRouteStatus(currentRoute.id, 'cancelled');
+                } catch {}
+              }
+              clearActiveCarpool();
+            }}
+            className="w-full py-2 text-red-500 font-bold text-xs border border-red-200 rounded-lg"
+          >
+            운행 모집 취소
+          </button>
+        </div>
       )}
 
       {/* 2부제 Banner */}
