@@ -35,6 +35,7 @@ export interface User {
   vehicle?: Vehicle;
   phone?: string;
   stats?: UserStats;
+  isAdmin?: boolean;
   createdAt: any;
 }
 
@@ -104,4 +105,5 @@ export type AppState =
   | 'PASSENGER_IN_TRANSIT'
   | 'PROFILE'
   | 'PROFILE_EDIT'
-  | 'CHAT';
+  | 'CHAT'
+  | 'ADMIN';

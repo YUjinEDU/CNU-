@@ -44,12 +44,22 @@ export function HomeScreen() {
             <h2 className="text-xl font-extrabold text-primary-container tracking-tight mb-1">{user?.name}</h2>
             <p className="text-sm text-on-surface-variant font-medium">{user?.department}</p>
           </div>
-          <button
-            onClick={() => setShowGuide(true)}
-            className="bg-blue-50 text-primary-container p-2 rounded-full"
-          >
+          <div className="flex items-center gap-2">
+            {user?.isAdmin && (
+              <button
+                onClick={() => setState('ADMIN')}
+                className="bg-red-50 text-red-600 px-3 py-1.5 rounded-full text-[10px] font-bold"
+              >
+                관리자
+              </button>
+            )}
+            <button
+              onClick={() => setShowGuide(true)}
+              className="bg-blue-50 text-primary-container p-2 rounded-full"
+            >
             <HelpCircle className="w-5 h-5" />
           </button>
+          </div>
         </div>
         {user?.vehicle ? (
           <div className="bg-surface-container-low rounded-lg p-3 flex items-center gap-3">

@@ -20,6 +20,7 @@ import { PassengerMatchedScreen } from './screens/passenger/PassengerMatchedScre
 import { PassengerEnRouteScreen } from './screens/passenger/PassengerEnRouteScreen';
 import { PassengerInTransitScreen } from './screens/passenger/PassengerInTransitScreen';
 import { ChatRoom } from './components/ChatRoom';
+import { AdminScreen } from './screens/AdminScreen';
 
 function ErrorFallback({ error }: { error: Error }) {
   return (
@@ -70,6 +71,7 @@ function AppContent() {
           {state === 'PROFILE'            && <ProfileScreen key="profile" />}
           {state === 'PROFILE_EDIT'       && <ProfileEditScreen key="profile-edit" />}
           {state === 'CHAT'               && <ChatRoom key="chat" />}
+          {state === 'ADMIN'              && <AdminScreen key="admin" />}
         </AnimatePresence>
       </main>
 
