@@ -39,7 +39,7 @@ export function LoginScreen() {
       <div className="text-center space-y-3">
         <School className="w-20 h-20 text-primary-container mx-auto" />
         <h1 className="text-4xl font-black text-primary-container tracking-tight">CNU 카풀</h1>
-        <p className="text-on-surface-variant font-medium">충남대학교 교직원 카풀 서비스</p>
+        <p className="text-on-surface-variant font-medium">충남대학교 카풀 서비스</p>
       </div>
 
       <div className="space-y-4">

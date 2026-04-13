@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MapPin, Car, Settings, LogOut, ChevronRight, BadgeCheck, BarChart3, History } from 'lucide-react';
+import { MapPin, Car, Settings, LogOut, ChevronRight, BarChart3, History } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useApp } from '../contexts/AppContext';
 import { logout } from '../lib/authService';
@@ -48,10 +48,6 @@ export function ProfileScreen() {
           {user?.employeeNumber && (
             <p className="text-xs text-on-surface-variant mt-1">교번 {user.employeeNumber}</p>
           )}
-          <div className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 text-primary-container rounded-full text-[10px] font-bold mt-2">
-            <BadgeCheck className="w-3 h-3 fill-current" />
-            인증 완료
-          </div>
         </div>
       </div>
 
