@@ -377,7 +377,7 @@ describe('엣지 케이스', () => {
     expect(true).toBe(true);
   });
 
-  it('5부제 — 번호판 없는 사용자도 안전 처리', () => {
+  it('2부제 — 번호판 없는 사용자도 안전 처리', () => {
     const msg = getRestrictionMessage('', new Date('2026-04-13'));
     expect(msg.canDrive).toBe(true); // 번호판 없으면 제한 없음
   });

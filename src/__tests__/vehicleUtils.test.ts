@@ -14,75 +14,90 @@ describe('extractLastDigit', () => {
   });
 });
 
-describe('isRestricted', () => {
-  it('월요일에 끝번호 1, 6 차량은 제한된다', () => {
-    const monday = new Date('2026-04-13'); // 월요일
-    expect(isRestricted('대전 12가 3451', monday)).toBe(true);
-    expect(isRestricted('대전 12가 3456', monday)).toBe(true);
-    expect(isRestricted('대전 12가 3452', monday)).toBe(false);
+describe('isRestricted (2부제)', () => {
+  it('홀수 날에 짝수 끝번호 차량은 제한된다', () => {
+    const day13 = new Date('2026-04-13T00:00:00+09:00'); // 13일(홀수), 월요일
+    expect(isRestricted('대전 12가 3452', day13)).toBe(true);  // 끝번호 2(짝수) → 제한
+    expect(isRestricted('대전 12가 3450', day13)).toBe(true);  // 끝번호 0(짝수) → 제한
+    expect(isRestricted('대전 12가 3456', day13)).toBe(true);  // 끝번호 6(짝수) → 제한
   });
 
-  it('화요일에 끝번호 2, 7 차량은 제한된다', () => {
-    const tuesday = new Date('2026-04-14');
-    expect(isRestricted('대전 12가 3452', tuesday)).toBe(true);
-    expect(isRestricted('대전 12가 3457', tuesday)).toBe(true);
-    expect(isRestricted('대전 12가 3453', tuesday)).toBe(false);
+  it('홀수 날에 홀수 끝번호 차량은 운행 가능하다', () => {
+    const day13 = new Date('2026-04-13T00:00:00+09:00'); // 13일(홀수)
+    expect(isRestricted('대전 12가 3451', day13)).toBe(false); // 끝번호 1(홀수) → 가능
+    expect(isRestricted('대전 12가 3453', day13)).toBe(false); // 끝번호 3(홀수) → 가능
+    expect(isRestricted('대전 12가 3459', day13)).toBe(false); // 끝번호 9(홀수) → 가능
   });
 
-  it('수요일에 끝번호 3, 8 차량은 제한된다', () => {
-    const wednesday = new Date('2026-04-15');
-    expect(isRestricted('대전 12가 3453', wednesday)).toBe(true);
-    expect(isRestricted('대전 12가 3458', wednesday)).toBe(true);
+  it('짝수 날에 홀수 끝번호 차량은 제한된다', () => {
+    const day14 = new Date('2026-04-14T00:00:00+09:00'); // 14일(짝수), 화요일
+    expect(isRestricted('대전 12가 3451', day14)).toBe(true);  // 끝번호 1(홀수) → 제한
+    expect(isRestricted('대전 12가 3453', day14)).toBe(true);  // 끝번호 3(홀수) → 제한
+    expect(isRestricted('대전 12가 3457', day14)).toBe(true);  // 끝번호 7(홀수) → 제한
   });
 
-  it('목요일에 끝번호 4, 9 차량은 제한된다', () => {
-    const thursday = new Date('2026-04-16');
-    expect(isRestricted('대전 12가 3454', thursday)).toBe(true);
-    expect(isRestricted('대전 12가 3459', thursday)).toBe(true);
-  });
-
-  it('금요일에 끝번호 5, 0 차량은 제한된다', () => {
-    const friday = new Date('2026-04-17');
-    expect(isRestricted('대전 12가 3455', friday)).toBe(true);
-    expect(isRestricted('대전 12가 3450', friday)).toBe(true);
+  it('짝수 날에 짝수 끝번호 차량은 운행 가능하다', () => {
+    const day14 = new Date('2026-04-14T00:00:00+09:00'); // 14일(짝수)
+    expect(isRestricted('대전 12가 3452', day14)).toBe(false); // 끝번호 2(짝수) → 가능
+    expect(isRestricted('대전 12가 3450', day14)).toBe(false); // 끝번호 0(짝수) → 가능
+    expect(isRestricted('대전 12가 3458', day14)).toBe(false); // 끝번호 8(짝수) → 가능
   });
 
   it('주말에는 제한이 없다', () => {
-    const saturday = new Date('2026-04-18');
-    const sunday = new Date('2026-04-19');
+    const saturday = new Date('2026-04-18T00:00:00+09:00'); // 토요일
+    const sunday = new Date('2026-04-19T00:00:00+09:00');   // 일요일
     expect(isRestricted('대전 12가 3451', saturday)).toBe(false);
+    expect(isRestricted('대전 12가 3452', saturday)).toBe(false);
     expect(isRestricted('대전 12가 3451', sunday)).toBe(false);
+    expect(isRestricted('대전 12가 3452', sunday)).toBe(false);
   });
 });
 
-describe('getTodayRestriction', () => {
-  it('평일에는 제한 숫자 2개를 반환한다', () => {
-    const monday = new Date('2026-04-13');
-    const result = getTodayRestriction(monday);
-    expect(result.dayName).toBe('월요일');
-    expect(result.restrictedDigits).toEqual([1, 6]);
+describe('getTodayRestriction (2부제)', () => {
+  it('홀수 날에는 짝수 끝번호가 제한된다', () => {
+    const day13 = new Date('2026-04-13T00:00:00+09:00');
+    const result = getTodayRestriction(day13);
+    expect(result.isOddDay).toBe(true);
+    expect(result.restrictedDigits).toEqual([0, 2, 4, 6, 8]);
+    expect(result.allowedDigits).toEqual([1, 3, 5, 7, 9]);
     expect(result.isWeekend).toBe(false);
   });
 
-  it('주말에는 빈 배열과 isWeekend=true를 반환한다', () => {
-    const saturday = new Date('2026-04-18');
+  it('짝수 날에는 홀수 끝번호가 제한된다', () => {
+    const day14 = new Date('2026-04-14T00:00:00+09:00');
+    const result = getTodayRestriction(day14);
+    expect(result.isOddDay).toBe(false);
+    expect(result.restrictedDigits).toEqual([1, 3, 5, 7, 9]);
+    expect(result.allowedDigits).toEqual([0, 2, 4, 6, 8]);
+  });
+
+  it('주말에는 빈 제한 배열과 isWeekend=true를 반환한다', () => {
+    const saturday = new Date('2026-04-18T00:00:00+09:00');
     const result = getTodayRestriction(saturday);
     expect(result.restrictedDigits).toEqual([]);
     expect(result.isWeekend).toBe(true);
   });
 });
 
-describe('getRestrictionMessage', () => {
-  it('운행 가능한 경우 canDrive=true 메시지를 반환한다', () => {
-    const monday = new Date('2026-04-13');
-    const result = getRestrictionMessage('대전 12가 3452', monday); // 끝번호 2, 월요일은 1,6 제한
+describe('getRestrictionMessage (2부제)', () => {
+  it('운행 가능한 경우 canDrive=true', () => {
+    const day13 = new Date('2026-04-13T00:00:00+09:00'); // 홀수 날
+    const result = getRestrictionMessage('대전 12가 3451', day13); // 끝번호 1(홀수) → 가능
     expect(result.canDrive).toBe(true);
+    expect(result.message).toContain('홀수');
   });
 
-  it('운행 불가한 경우 canDrive=false 메시지를 반환한다', () => {
-    const monday = new Date('2026-04-13');
-    const result = getRestrictionMessage('대전 12가 3451', monday); // 끝번호 1, 월요일 제한
+  it('운행 불가한 경우 canDrive=false', () => {
+    const day13 = new Date('2026-04-13T00:00:00+09:00'); // 홀수 날
+    const result = getRestrictionMessage('대전 12가 3452', day13); // 끝번호 2(짝수) → 제한
     expect(result.canDrive).toBe(false);
-    expect(result.message).toContain('1, 6');
+    expect(result.message).toContain('홀수');
+  });
+
+  it('주말에는 항상 canDrive=true', () => {
+    const saturday = new Date('2026-04-18T00:00:00+09:00');
+    const result = getRestrictionMessage('대전 12가 3452', saturday);
+    expect(result.canDrive).toBe(true);
+    expect(result.message).toContain('2부제');
   });
 });

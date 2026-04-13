@@ -48,7 +48,7 @@ export function HomeScreen() {
         )}
       </section>
 
-      {/* 5부제 Banner */}
+      {/* 2부제 Banner */}
       {plateNumber ? (
         <div className={`px-5 py-4 rounded-xl flex items-center gap-4 border-l-4 ${
           restriction.canDrive
@@ -70,7 +70,7 @@ export function HomeScreen() {
           </div>
           <div>
             <p className="text-sm font-bold leading-tight">차량 번호가 등록되지 않았습니다.</p>
-            <p className="text-[11px] opacity-80 mt-0.5">프로필에서 차량 정보를 등록하면 5부제를 자동 확인합니다.</p>
+            <p className="text-[11px] opacity-80 mt-0.5">프로필에서 차량 정보를 등록하면 2부제를 자동 확인합니다.</p>
           </div>
         </div>
       )}
@@ -94,7 +94,7 @@ export function HomeScreen() {
             <h3 className="text-xl font-bold">🚗 출근길 빈자리 나눔 (운행)</h3>
             <p className={`text-sm mt-1 ${plateNumber && !restriction.canDrive ? 'text-slate-400' : 'text-blue-100/80'}`}>
               {plateNumber && !restriction.canDrive
-                ? '오늘은 5부제 적용으로 운행이 불가합니다'
+                ? '오늘은 2부제 적용으로 운행이 불가합니다'
                 : '연구실 동료 및 교직원과 함께 출근하기'}
             </p>
           </div>

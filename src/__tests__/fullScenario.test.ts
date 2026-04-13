@@ -35,7 +35,7 @@ describe('시나리오 A: 운전자가 동승자를 모집하는 경우', () => 
     saveUser(driver);
     expect(getUser('driver-kim')).not.toBeNull();
 
-    // 5부제 확인 (끝번호 7, 화요일 제한)
+    // 2부제 확인 (끝번호 7(홀수), 14일(짝수 날) 제한)
     const tuesday = new Date('2026-04-14');
     expect(isRestricted(driver.vehicle!.plateNumber, tuesday)).toBe(true);
     const monday = new Date('2026-04-13');
@@ -202,14 +202,15 @@ describe('시나리오 B: 탑승자가 카풀을 요청하는 경우', () => {
   });
 });
 
-describe('시나리오 C: 5부제 + 화면 전환 통합', () => {
-  it('5부제 걸린 차량은 운전 불가, 탑승만 가능', () => {
-    const msg = getRestrictionMessage('대전 12가 3451', new Date('2026-04-13')); // 월요일, 끝번호1
+describe('시나리오 C: 2부제 + 화면 전환 통합', () => {
+  it('2부제 걸린 차량은 운전 불가, 탑승만 가능', () => {
+    // 13일(홀수 날) → 홀수 끝번호만 운행 가능
+    const msg = getRestrictionMessage('대전 12가 3452', new Date('2026-04-13T00:00:00+09:00')); // 끝번호2(짝수) → 제한
     expect(msg.canDrive).toBe(false);
-    expect(msg.message).toContain('1, 6');
+    expect(msg.message).toContain('홀수');
 
-    // 같은 날 끝번호 2 차량은 운행 가능
-    const msg2 = getRestrictionMessage('대전 12가 3452', new Date('2026-04-13'));
+    // 같은 날 끝번호 1(홀수) 차량은 운행 가능
+    const msg2 = getRestrictionMessage('대전 12가 3451', new Date('2026-04-13T00:00:00+09:00'));
     expect(msg2.canDrive).toBe(true);
   });
 
