@@ -11,12 +11,12 @@ export function TopAppBar({ title = "CNU 카풀" }: TopAppBarProps) {
 
   return (
     <>
-      <header className="flex justify-between items-center px-6 py-4 w-full sticky top-0 bg-white/80 backdrop-blur-xl z-50 shadow-[0_8px_24px_rgba(0,40,83,0.06)]">
-        <div className="flex items-center gap-3">
-          <School className="text-primary-container w-6 h-6" />
-          <div className="flex flex-col">
-            <span className="text-[10px] text-on-surface-variant font-semibold">충남대학교</span>
-            <h1 className="text-lg font-bold tracking-tight font-headline text-primary-container">{title}</h1>
+      <header className="flex justify-between items-center px-5 py-2.5 w-full sticky top-0 bg-white/80 backdrop-blur-xl z-50 shadow-[0_4px_12px_rgba(0,40,83,0.04)]">
+        <div className="flex items-center gap-2">
+          <School className="text-primary-container w-5 h-5" />
+          <div className="flex items-baseline gap-1.5">
+            <h1 className="text-base font-bold tracking-tight font-headline text-primary-container">{title}</h1>
+            <span className="text-[9px] text-on-surface-variant font-medium">충남대</span>
           </div>
         </div>
         <button
