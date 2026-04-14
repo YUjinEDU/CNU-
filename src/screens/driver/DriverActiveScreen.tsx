@@ -7,6 +7,7 @@ import { sendSystemMessage } from '../../lib/chatService';
 import { getDistance } from '../../lib/geoUtils';
 import { useApp } from '../../contexts/AppContext';
 import { showToast } from '../../components/Toast';
+import { maskName, maskAddress } from '../../lib/privacyUtils';
 import { showConfirm } from '../../components/ConfirmModal';
 
 export function DriverActiveScreen() {
@@ -121,20 +122,20 @@ export function DriverActiveScreen() {
             <div key={ride.id} className="bg-white p-4 rounded-xl shadow-md border border-orange-200">
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-10 h-10 rounded-full bg-primary-container/10 flex items-center justify-center">
-                  <span className="font-bold text-primary-container">{(ride.passengerName ?? '?')[0]}</span>
+                  <span className="font-bold text-primary-container">{maskName(ride.passengerName ?? '?')[0]}</span>
                 </div>
                 <div className="flex-1">
-                  <p className="font-bold text-on-surface">{ride.passengerName}</p>
+                  <p className="font-bold text-on-surface">{maskName(ride.passengerName)}</p>
                   <p className="text-xs text-on-surface-variant">탑승 신청</p>
                 </div>
               </div>
 
-              {/* 상세 정보 */}
+              {/* 상세 정보 — 동네 수준만 표시 */}
               <div className="space-y-1.5 mb-3">
                 <div className="flex items-start gap-1.5">
                   <MapPin className="w-3.5 h-3.5 text-blue-500 mt-0.5 shrink-0" />
                   <p className="text-xs text-slate-600">
-                    {ride.passengerDepartureAddress || '주소 미등록'}
+                    {maskAddress(ride.passengerDepartureAddress || '')}
                   </p>
                 </div>
                 {driverSourceCoord && ride.passengerDepartureCoord && (

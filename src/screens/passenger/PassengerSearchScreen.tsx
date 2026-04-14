@@ -6,6 +6,7 @@ import { createRide, hasActiveRide } from '../../lib/firebaseDb';
 import { getDistance } from '../../lib/geoUtils';
 import { useApp } from '../../contexts/AppContext';
 import { showToast } from '../../components/Toast';
+import { maskName, maskAddress } from '../../lib/privacyUtils';
 
 export function PassengerSearchScreen() {
   const { setState, availableRoutes, setSelectedRoute, pickupPoint, user, setCurrentRide, searchMode } = useApp();
@@ -111,9 +112,9 @@ export function PassengerSearchScreen() {
                 <div className="p-5 space-y-4">
                   <div className="flex justify-between items-start">
                     <div>
-                      <h3 className="text-lg font-bold text-on-surface">{route.driverName}</h3>
+                      <h3 className="text-lg font-bold text-on-surface">{maskName(route.driverName)}</h3>
                       <p className="text-xs text-on-surface-variant">
-                        {route.sourceName} → {route.destName}
+                        {maskAddress(route.sourceName)} → {route.destName}
                       </p>
                     </div>
                     <div className="text-right">
@@ -129,9 +130,7 @@ export function PassengerSearchScreen() {
                           <Car className="w-3 h-3" />
                           {route.vehicle.color} {route.vehicle.model}
                         </span>
-                        <span className="bg-slate-800 text-white px-2.5 py-1 rounded-full font-mono text-[11px] tracking-wide">
-                          {route.vehicle.plateNumber}
-                        </span>
+                        {/* 번호판은 매칭 확정 후에만 공개 */}
                       </>
                     )}
                     <span className={`px-2.5 py-1 rounded-full flex items-center gap-1 font-bold ${
