@@ -22,7 +22,7 @@ export function DriverSetupScreen() {
   const [availableSeats, setAvailableSeats] = useState(
     user?.vehicle?.seatCapacity ? user.vehicle.seatCapacity - 1 : 3
   );
-  const [departureDate, setDepartureDate] = useState<Date>(new Date());
+  const [departureDates, setDepartureDates] = useState<Date[]>([new Date()]);
   const [departureHour, setDepartureHour] = useState(8);
   const [departureMinute, setDepartureMinute] = useState(30);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -41,31 +41,38 @@ export function DriverSetupScreen() {
   }, [user]);
 
   const departureTimeStr = `${String(departureHour).padStart(2, '0')}:${String(departureMinute).padStart(2, '0')}`;
-  const canStart = !!driverSource && !!driverDest && !isSubmitting;
+  const canStart = !!driverSource && !!driverDest && !isSubmitting && departureDates.length > 0;
 
   const handleStartRoute = async () => {
     if (!canStart || !user) return;
+    if (departureDates.length === 0) {
+      showToast('출발 날짜를 선택해주세요.', 'info');
+      return;
+    }
     setIsSubmitting(true);
     try {
       setDriverRoute([]);
-      // Firestore는 undefined 필드를 거부하므로, 좌표가 없으면 필드 자체를 제외
-      const routeData: Record<string, any> = {
-        driverId: user.uid,
-        driverName: user.name,
-        vehicle: user.vehicle,
-        sourceName: driverSource,
-        destName: driverDest,
-        path: JSON.stringify([]),
-        status: 'active',
-        availableSeats,
-        departureTime: departureTimeStr,
-        departureDate: format(departureDate, 'yyyy-MM-dd'),
-      };
-      if (driverSourceCoord) routeData.sourceCoord = driverSourceCoord;
-      if (driverDestCoord) routeData.destCoord = driverDestCoord;
-      const route = await createRoute(routeData as any);
-      setCurrentRoute(route);
-      setState('DRIVER_ACTIVE');
+      let lastRoute = null;
+      for (const date of departureDates) {
+        const routeData: Record<string, any> = {
+          driverId: user.uid,
+          driverName: user.name,
+          vehicle: user.vehicle,
+          sourceName: driverSource,
+          destName: driverDest,
+          path: JSON.stringify([]),
+          status: 'active',
+          availableSeats,
+          departureTime: departureTimeStr,
+          departureDate: format(date, 'yyyy-MM-dd'),
+        };
+        if (driverSourceCoord) routeData.sourceCoord = driverSourceCoord;
+        if (driverDestCoord) routeData.destCoord = driverDestCoord;
+        lastRoute = await createRoute(routeData as any);
+      }
+      showToast(`${departureDates.length}일 운행이 등록되었습니다!`, 'success');
+      if (lastRoute) setCurrentRoute(lastRoute);
+      setState('HOME');
     } catch (e: any) {
       showToast(e.message || '운행 등록 중 오류가 발생했습니다.', 'error');
     } finally {
@@ -153,24 +160,33 @@ export function DriverSetupScreen() {
           )}
         </div>
 
-        {/* 출발 날짜 */}
+        {/* 출발 날짜 (복수 선택) */}
         <div className="bg-surface-container-lowest rounded-xl p-5 shadow-sm">
           <div className="flex items-center justify-between mb-3">
-            <label className="text-[10px] font-bold text-on-surface-variant">출발 날짜</label>
+            <label className="text-[10px] font-bold text-on-surface-variant">출발 날짜 (복수 선택 가능)</label>
             <span className="text-sm font-bold text-primary-container">
-              {format(departureDate, 'M월 d일 (EEE)', { locale: ko })}
+              {departureDates.length}일 선택
             </span>
           </div>
-          {/* 빠른 선택 칩 */}
+          {/* 빠른 선택 칩 — 토글 방식 */}
           <div className="flex gap-2 mb-3 flex-wrap">
             {[0, 1, 2, 3, 4, 5, 6].map(offset => {
               const d = addDays(new Date(), offset);
+              const dateStr = format(d, 'yyyy-MM-dd');
               const label = offset === 0 ? '오늘' : offset === 1 ? '내일' : offset === 2 ? '모레' : format(d, 'M/d(EEE)', { locale: ko });
-              const isSelected = format(departureDate, 'yyyy-MM-dd') === format(d, 'yyyy-MM-dd');
+              const isSelected = departureDates.some(sd => format(sd, 'yyyy-MM-dd') === dateStr);
               const plate = user?.vehicle?.plateNumber || '';
               const restricted = plate ? isRestricted(plate, d) : false;
+              const toggle = () => {
+                if (restricted) return;
+                if (isSelected) {
+                  setDepartureDates(prev => prev.filter(sd => format(sd, 'yyyy-MM-dd') !== dateStr));
+                } else {
+                  setDepartureDates(prev => [...prev, d]);
+                }
+              };
               return (
-                <button key={offset} onClick={() => !restricted && setDepartureDate(d)}
+                <button key={offset} onClick={toggle}
                   disabled={restricted}
                   className={`px-3.5 py-1.5 rounded-full text-sm font-bold transition-all ${
                     restricted
@@ -179,17 +195,18 @@ export function DriverSetupScreen() {
                         ? 'bg-primary-container text-white shadow-md'
                         : 'bg-slate-100 text-slate-500'
                   }`}>
-                  {label}
+                  {label} {isSelected && '✓'}
                 </button>
               );
             })}
           </div>
+          {/* @ts-ignore react-day-picker mode type */}
           <DayPicker
-            mode="single"
-            selected={departureDate}
-            onSelect={(d) => d && setDepartureDate(d)}
+            mode="multiple"
+            selected={departureDates}
+            onSelect={(dates) => dates && setDepartureDates(dates)}
             locale={ko}
-            disabled={(date) => {
+            disabled={(date: Date) => {
               if (date < new Date(new Date().setHours(0, 0, 0, 0))) return true;
               if (date > addDays(new Date(), 14)) return true;
               const plate = user?.vehicle?.plateNumber || '';
@@ -198,6 +215,18 @@ export function DriverSetupScreen() {
             }}
             className="mx-auto"
           />
+          {/* 선택된 날짜 요약 */}
+          {departureDates.length > 0 && (
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {departureDates
+                .sort((a, b) => a.getTime() - b.getTime())
+                .map(d => (
+                  <span key={format(d, 'yyyy-MM-dd')} className="bg-primary-container/10 text-primary-container text-xs font-bold px-2.5 py-1 rounded-full">
+                    {format(d, 'M/d(EEE)', { locale: ko })}
+                  </span>
+                ))}
+            </div>
+          )}
         </div>
 
         {/* 출발 시간 — iOS 휠 피커 */}
@@ -282,7 +311,7 @@ export function DriverSetupScreen() {
         }`}
       >
         <Car className="w-6 h-6 fill-current" />
-        {isSubmitting ? '등록 중...' : '동승자 모집 시작'}
+        {isSubmitting ? '등록 중...' : departureDates.length > 1 ? `${departureDates.length}일 운행 한번에 등록` : '동승자 모집 시작'}
       </button>
     </motion.div>
   );

@@ -218,9 +218,12 @@ export async function cancelRide(
     status: 'cancelled',
     cancelledBy,
   });
-  batch.update(doc(db, 'users', cancellerUid), {
-    'stats.cancelCount': increment(1),
-  });
+  // 합의 단계(confirming/confirmed) 이후 취소만 카운팅
+  if (rideData && ['confirming', 'confirmed'].includes(rideData.status)) {
+    batch.update(doc(db, 'users', cancellerUid), {
+      'stats.cancelCount': increment(1),
+    });
+  }
   // accepted 이후 취소면 좌석 복원
   if (rideData && ['accepted', 'confirming', 'confirmed'].includes(rideData.status) && rideData.routeId) {
     batch.update(doc(db, 'routes', rideData.routeId), {

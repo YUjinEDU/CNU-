@@ -23,7 +23,8 @@ export function HomeScreen() {
   }, [currentRoute?.id]);
 
   // 진행 중인 카풀 상태 판단
-  const hasActiveRoute = currentRoute && currentRoute.status === 'active' && (currentRoute.availableSeats ?? 1) > 0;
+  const myActiveRoutes = availableRoutes.filter(r => r.driverId === user?.uid);
+  const hasActiveRoute = myActiveRoutes.length > 0;
   const rideStatus = currentRide?.status;
   const isDriverForRide = currentRide?.driverId === user?.uid;
   const hasActiveRide = rideStatus && !['completed', 'cancelled', 'rejected'].includes(rideStatus);
@@ -119,40 +120,47 @@ export function HomeScreen() {
         </button>
       )}
 
-      {/* 운행 등록 중 배너 (ride 없이 route만 있을 때) */}
+      {/* 내 운행 리스트 (여러 개 가능) */}
       {hasActiveRoute && !hasActiveRide && (
-        <div className="bg-blue-50 border-2 border-blue-300 rounded-xl p-5 space-y-3">
-          <button
-            onClick={() => setState('DRIVER_ACTIVE')}
-            className="w-full flex items-center gap-4 active:scale-[0.98] transition-all"
-          >
-            <div className="bg-primary-container text-white p-3 rounded-full">
-              <Car className="w-6 h-6" />
+        <div className="space-y-2">
+          <p className="text-xs font-bold text-on-surface-variant px-1">내 운행 {myActiveRoutes.length}건</p>
+          {myActiveRoutes
+            .sort((a, b) => (a.departureDate ?? '').localeCompare(b.departureDate ?? ''))
+            .map(route => (
+            <div key={route.id} className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-center gap-3">
+              <button
+                onClick={() => { setCurrentRoute(route); setState('DRIVER_ACTIVE'); }}
+                className="flex-1 flex items-center gap-3 active:scale-[0.98] transition-all"
+              >
+                <div className="bg-primary-container text-white p-2 rounded-full">
+                  <Car className="w-4 h-4" />
+                </div>
+                <div className="text-left flex-1">
+                  <p className="font-bold text-blue-800 text-sm">
+                    {route.departureDate?.slice(5).replace('-', '/')} · {route.departureTime}
+                  </p>
+                  <p className="text-[10px] text-blue-600">
+                    {route.sourceName} → {route.destName} · {route.availableSeats ?? 0}석
+                  </p>
+                </div>
+                <span className="text-blue-500 text-xs font-bold">보기→</span>
+              </button>
+              <button
+                onClick={async () => {
+                  if (!(await showConfirm(`${route.departureDate?.slice(5).replace('-', '/')} 운행을 취소하시겠습니까?`))) return;
+                  if (route.id) {
+                    try {
+                      const { updateRouteStatus } = await import('../lib/firebaseDb');
+                      await updateRouteStatus(route.id, 'cancelled');
+                    } catch {}
+                  }
+                }}
+                className="text-red-400 text-[10px] font-bold px-2 py-1 shrink-0"
+              >
+                취소
+              </button>
             </div>
-            <div className="flex-1 text-left">
-              <p className="font-bold text-blue-800">운행 모집 중</p>
-              <p className="text-xs text-blue-600 mt-1">
-                {currentRoute?.sourceName} → {currentRoute?.destName}
-                {currentRoute?.departureTime && ` · ${currentRoute.departureTime} 출발`}
-              </p>
-            </div>
-            <span className="text-blue-600 font-bold text-sm">보기 →</span>
-          </button>
-          <button
-            onClick={async () => {
-              if (!(await showConfirm('운행 모집을 취소하시겠습니까?'))) return;
-              if (currentRoute.id) {
-                try {
-                  const { updateRouteStatus } = await import('../lib/firebaseDb');
-                  await updateRouteStatus(currentRoute.id, 'cancelled');
-                } catch {}
-              }
-              clearActiveCarpool();
-            }}
-            className="w-full py-2 text-red-500 font-bold text-xs border border-red-200 rounded-lg"
-          >
-            운행 모집 취소
-          </button>
+          ))}
         </div>
       )}
 
@@ -200,24 +208,24 @@ export function HomeScreen() {
       <div className="grid grid-cols-1 gap-4">
         <button
           onClick={() => setState('DRIVER_SETUP')}
-          disabled={(plateNumber !== '' && !restriction.canDrive) || !!hasActiveRoute || !!hasActiveRide}
+          disabled={!!hasActiveRide}
           className={`group relative p-6 rounded-xl flex flex-col items-start gap-4 shadow-lg overflow-hidden transition-all ${
-            (plateNumber && !restriction.canDrive) || hasActiveRoute || hasActiveRide
+            hasActiveRide
               ? 'bg-slate-300 text-slate-500 cursor-not-allowed'
               : 'bg-primary-container text-white active:scale-[0.98]'
           }`}
         >
           <Rocket className="absolute -right-4 -bottom-4 w-32 h-32 opacity-10 group-hover:scale-110 transition-transform" />
-          <div className={`p-2 rounded-lg ${(plateNumber && !restriction.canDrive) || hasActiveRoute || hasActiveRide ? 'bg-slate-400/20' : 'bg-white/20'}`}>
+          <div className={`p-2 rounded-lg ${hasActiveRide ? 'bg-slate-400/20' : 'bg-white/20'}`}>
             <Car className="w-8 h-8" />
           </div>
           <div className="text-left">
             <h3 className="text-xl font-bold">🚗 빈자리 나눔 (운행)</h3>
-            <p className={`text-sm mt-1 ${(plateNumber && !restriction.canDrive) || hasActiveRoute || hasActiveRide ? 'text-slate-400' : 'text-blue-100/80'}`}>
-              {hasActiveRoute || hasActiveRide
-                ? '이미 진행 중인 카풀이 있습니다'
-                : plateNumber && !restriction.canDrive
-                  ? '오늘은 2부제 적용으로 운행이 불가합니다'
+            <p className={`text-sm mt-1 ${hasActiveRide ? 'text-slate-400' : 'text-blue-100/80'}`}>
+              {hasActiveRide
+                ? '매칭 진행 중에는 새 운행을 등록할 수 없습니다'
+                : hasActiveRoute
+                  ? '추가 날짜 운행 등록하기'
                   : '같은 방향 동료와 함께 이동하기'}
             </p>
           </div>
