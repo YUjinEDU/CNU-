@@ -150,9 +150,7 @@ export function PassengerSearchScreen() {
                     </div>
                     <div className="text-right">
                       <span className="text-xl font-black text-primary-container block">{route.departureTime}</span>
-                      <span className="text-[10px] font-medium text-on-surface-variant">
-                        {route.departureDate ? route.departureDate.slice(5).replace('-', '/') : '오늘'} 출발
-                      </span>
+                      <span className="text-[10px] font-medium text-on-surface-variant">출발</span>
                     </div>
                   </div>
 
