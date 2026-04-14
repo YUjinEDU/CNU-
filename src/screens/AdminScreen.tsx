@@ -2,12 +2,13 @@ import { useState, useEffect } from 'react';
 import { Users, Car, MessageCircle, ArrowLeft, RefreshCw, CheckCircle, XCircle, Clock, Handshake } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useApp } from '../contexts/AppContext';
-import { getAllUsers, getActiveRoutes, getRideHistory } from '../lib/firebaseDb';
+import { getAllUsers, getActiveRoutes, getRideHistory, updateRouteStatus, cancelRide } from '../lib/firebaseDb';
 import { ChatHistoryModal } from '../components/ChatHistoryModal';
 import { User, Route, Ride } from '../types';
 import { collection, getDocs, query, orderBy, limit } from 'firebase/firestore';
 import { db } from '../firebase';
 import { showToast } from '../components/Toast';
+import { showConfirm } from '../components/ConfirmModal';
 
 export function AdminScreen() {
   const { setState } = useApp();
@@ -204,9 +205,31 @@ export function AdminScreen() {
                     </div>
                   </div>
                   <p className="text-xs text-on-surface-variant">{r.sourceName} → {r.destName}</p>
-                  {r.availableSeats !== undefined && (
-                    <p className="text-[10px] text-on-surface-variant mt-1">잔여석: {r.availableSeats}석</p>
-                  )}
+                  <div className="flex items-center justify-between mt-2">
+                    <div className="flex gap-2">
+                      {r.availableSeats !== undefined && (
+                        <span className="text-[10px] text-on-surface-variant">잔여석: {r.availableSeats}석</span>
+                      )}
+                      {r.departureDate && (
+                        <span className="text-[10px] text-on-surface-variant">{r.departureDate.slice(5).replace('-', '/')}</span>
+                      )}
+                    </div>
+                    <button
+                      onClick={async () => {
+                        if (!(await showConfirm(`${r.driverName}의 운행을 취소하시겠습니까?`))) return;
+                        try {
+                          await updateRouteStatus(r.id!, 'cancelled');
+                          showToast('운행이 취소되었습니다.', 'success');
+                          loadData();
+                        } catch (e: any) {
+                          showToast(e.message || '취소 실패', 'error');
+                        }
+                      }}
+                      className="text-red-500 text-[11px] font-bold px-2 py-1 bg-red-50 rounded-full"
+                    >
+                      취소
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -239,13 +262,32 @@ export function AdminScreen() {
                   {r.passengerDestBuilding && (
                     <p className="text-[10px] text-on-surface-variant">목적지: {r.passengerDestBuilding}</p>
                   )}
-                  <button
-                    onClick={() => setSelectedRide(r)}
-                    className="flex items-center gap-1 text-[11px] text-primary-container font-bold mt-2"
-                  >
-                    <MessageCircle className="w-3.5 h-3.5" />
-                    채팅 기록 보기
-                  </button>
+                  <div className="flex items-center gap-3 mt-2">
+                    <button
+                      onClick={() => setSelectedRide(r)}
+                      className="flex items-center gap-1 text-[11px] text-primary-container font-bold"
+                    >
+                      <MessageCircle className="w-3.5 h-3.5" />
+                      채팅 기록
+                    </button>
+                    {!['completed', 'cancelled', 'rejected'].includes(r.status) && (
+                      <button
+                        onClick={async () => {
+                          if (!(await showConfirm(`${r.driverName || '운전자'} ↔ ${r.passengerName} 매칭을 취소하시겠습니까?`))) return;
+                          try {
+                            await cancelRide(r.id!, 'driver', r.driverId);
+                            showToast('매칭이 취소되었습니다.', 'success');
+                            loadData();
+                          } catch (e: any) {
+                            showToast(e.message || '취소 실패', 'error');
+                          }
+                        }}
+                        className="text-red-500 text-[11px] font-bold"
+                      >
+                        매칭 취소
+                      </button>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
