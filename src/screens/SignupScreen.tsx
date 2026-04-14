@@ -6,6 +6,7 @@ import { AddressSearch } from '../components/AddressSearch';
 import { CampusBuildingSelector } from '../components/CampusBuildingSelector';
 import { signup } from '../lib/authService';
 import { useApp } from '../contexts/AppContext';
+import { showToast } from '../components/Toast';
 
 export function SignupScreen() {
   const { setUser, setState } = useApp();
@@ -26,6 +27,10 @@ export function SignupScreen() {
   const handleSignup = async () => {
     if (!name || !employeeId || !password || !dept) {
       setError('이름, 교번, 비밀번호, 소속을 모두 입력해주세요.');
+      return;
+    }
+    if (!homeAddr.name) {
+      showToast('집 주소를 입력해주세요.', 'info');
       return;
     }
     if (password.length < 6) {
@@ -56,7 +61,8 @@ export function SignupScreen() {
     try {
       const newUser = await signup(employeeId.trim(), password, userData);
       setUser(newUser);
-      alert(`${newUser.name}님, 가입을 환영합니다! 🎉`);
+      const { showToast } = await import('../components/Toast');
+      showToast(`${newUser.name}님, 가입을 환영합니다!`, 'success');
       setState('HOME');
     } catch (e: any) {
       setError(e.message || '가입 중 오류가 발생했습니다.');
@@ -199,7 +205,7 @@ export function SignupScreen() {
 
         {/* 주소 */}
         <div className="space-y-5">
-          <label className="text-xs font-bold text-on-surface-variant uppercase tracking-widest ml-1">주소 저장 (선택)</label>
+          <label className="text-xs font-bold text-on-surface-variant uppercase tracking-widest ml-1">주소 등록 (필수)</label>
           <div className="space-y-2">
             <div className="flex items-center gap-2 ml-1">
               <Home className="w-4 h-4 text-primary-container" />

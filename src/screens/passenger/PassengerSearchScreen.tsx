@@ -6,7 +6,6 @@ import { createRide, hasActiveRide } from '../../lib/firebaseDb';
 import { getDistance } from '../../lib/geoUtils';
 import { useApp } from '../../contexts/AppContext';
 import { showToast } from '../../components/Toast';
-import { maskName, maskAddress } from '../../lib/privacyUtils';
 
 export function PassengerSearchScreen() {
   const { setState, availableRoutes, setSelectedRoute, pickupPoint, user, setCurrentRide, searchMode } = useApp();
@@ -115,9 +114,9 @@ export function PassengerSearchScreen() {
                 <div className="p-5 space-y-4">
                   <div className="flex justify-between items-start">
                     <div>
-                      <h3 className="text-lg font-bold text-on-surface">{maskName(route.driverName)}</h3>
+                      <h3 className="text-lg font-bold text-on-surface">{route.driverName}</h3>
                       <p className="text-xs text-on-surface-variant">
-                        {maskAddress(route.sourceName)} → {route.destName}
+                        {route.sourceName} → {route.destName}
                       </p>
                     </div>
                     <div className="text-right">

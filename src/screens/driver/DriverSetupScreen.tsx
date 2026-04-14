@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Car, MapPin, Building2, ChevronDown, Clock, Minus, Plus } from 'lucide-react';
 import Picker from 'react-mobile-picker';
+import { DayPicker } from 'react-day-picker';
+import { ko } from 'date-fns/locale';
+import { format, addDays } from 'date-fns';
+import 'react-day-picker/style.css';
 import { motion } from 'motion/react';
 import { createRoute } from '../../lib/firebaseDb';
 import { useApp } from '../../contexts/AppContext';
@@ -17,6 +21,7 @@ export function DriverSetupScreen() {
   const [availableSeats, setAvailableSeats] = useState(
     user?.vehicle?.seatCapacity ? user.vehicle.seatCapacity - 1 : 3
   );
+  const [departureDate, setDepartureDate] = useState<Date>(new Date());
   const [departureHour, setDepartureHour] = useState(8);
   const [departureMinute, setDepartureMinute] = useState(30);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -53,6 +58,7 @@ export function DriverSetupScreen() {
         status: 'active',
         availableSeats,
         departureTime: departureTimeStr,
+        departureDate: format(departureDate, 'yyyy-MM-dd'),
       };
       if (driverSourceCoord) routeData.sourceCoord = driverSourceCoord;
       if (driverDestCoord) routeData.destCoord = driverDestCoord;
@@ -144,6 +150,38 @@ export function DriverSetupScreen() {
               placeholder="도착지 주소 입력"
             />
           )}
+        </div>
+
+        {/* 출발 날짜 */}
+        <div className="bg-surface-container-lowest rounded-xl p-5 shadow-sm">
+          <div className="flex items-center justify-between mb-3">
+            <label className="text-[10px] font-bold text-on-surface-variant">출발 날짜</label>
+            <span className="text-sm font-bold text-primary-container">
+              {format(departureDate, 'M월 d일 (EEE)', { locale: ko })}
+            </span>
+          </div>
+          {/* 빠른 선택 칩 */}
+          <div className="flex gap-2 mb-3 flex-wrap">
+            {[0, 1, 2, 3].map(offset => {
+              const d = addDays(new Date(), offset);
+              const label = offset === 0 ? '오늘' : offset === 1 ? '내일' : offset === 2 ? '모레' : format(d, 'M/d(EEE)', { locale: ko });
+              const isSelected = format(departureDate, 'yyyy-MM-dd') === format(d, 'yyyy-MM-dd');
+              return (
+                <button key={offset} onClick={() => setDepartureDate(d)}
+                  className={`px-3.5 py-1.5 rounded-full text-sm font-bold transition-all ${isSelected ? 'bg-primary-container text-white shadow-md' : 'bg-slate-100 text-slate-500'}`}>
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+          <DayPicker
+            mode="single"
+            selected={departureDate}
+            onSelect={(d) => d && setDepartureDate(d)}
+            locale={ko}
+            disabled={{ before: new Date(), after: addDays(new Date(), 7) }}
+            className="mx-auto"
+          />
         </div>
 
         {/* 출발 시간 — iOS 휠 피커 */}
