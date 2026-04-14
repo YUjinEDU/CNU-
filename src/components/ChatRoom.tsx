@@ -8,7 +8,7 @@ import { showToast } from './Toast';
 import { showConfirm } from './ConfirmModal';
 
 export function ChatRoom() {
-  const { user, currentRide, setCurrentRide, setState, clearActiveCarpool } = useApp();
+  const { user, currentRide, setCurrentRide, setState, clearActiveCarpool, selectedRoute } = useApp();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isSending, setIsSending] = useState(false);
@@ -219,6 +219,26 @@ export function ChatRoom() {
           >
             확인
           </button>
+        </div>
+      )}
+
+      {/* 차량 상세 카드 — 매칭 확정 후 탑승자에게만 */}
+      {status === 'confirmed' && myRole === 'passenger' && selectedRoute?.vehicle && (
+        <div className="px-4 py-3 bg-slate-800 text-white border-b border-slate-700">
+          <p className="text-[10px] font-bold text-slate-400 mb-2">매칭된 차량 정보</p>
+          <div className="flex items-center gap-4">
+            <Car className="w-8 h-8 text-blue-400 shrink-0" />
+            <div className="flex-1">
+              <p className="text-lg font-black tracking-wider">{selectedRoute.vehicle.plateNumber}</p>
+              <p className="text-sm text-slate-300">
+                {selectedRoute.vehicle.color} {selectedRoute.vehicle.model}
+              </p>
+            </div>
+            <div className="text-right">
+              <p className="text-[10px] text-slate-400">운전자</p>
+              <p className="font-bold">{selectedRoute.driverName}</p>
+            </div>
+          </div>
         </div>
       )}
 
