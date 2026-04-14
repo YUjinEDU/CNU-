@@ -1,6 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { checkOrigin } from './_cors';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (!checkOrigin(req, res)) return;
   const { coords, output, orders } = req.query;
   if (!coords) {
     return res.status(400).json({ error: 'coords parameter required' });

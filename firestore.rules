@@ -1,10 +1,68 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // 개발 단계: 모든 읽기/쓰기 허용
-    // TODO: 프로덕션 배포 전 보안 규칙 재적용
+    // ⚠️ 현재 Firebase Auth 미사용으로 request.auth가 항상 null
+    // 실서비스 전환 시 Firebase Authentication 도입 후 아래 주석 규칙 적용 필요
+
+    // 사용자 컬렉션
+    match /users/{userId} {
+      allow read: if true;
+      // 쓰기: 필수 필드 검증
+      allow create: if request.resource.data.keys().hasAll(['uid', 'name', 'department'])
+                    && request.resource.data.name is string
+                    && request.resource.data.department is string;
+      allow update: if true;
+      allow delete: if false; // 사용자 삭제 금지
+    }
+
+    // 운행 컬렉션
+    match /routes/{routeId} {
+      allow read: if true;
+      allow create: if request.resource.data.keys().hasAll(['driverId', 'driverName', 'sourceName', 'destName', 'status'])
+                    && request.resource.data.status == 'active';
+      allow update: if true;
+      allow delete: if false; // route 삭제 금지 (상태 변경만)
+    }
+
+    // 매칭 컬렉션
+    match /rides/{rideId} {
+      allow read: if true;
+      allow create: if request.resource.data.keys().hasAll(['routeId', 'driverId', 'passengerId', 'status'])
+                    && request.resource.data.status == 'pending';
+      allow update: if true;
+      allow delete: if false; // ride 삭제 금지 (상태 변경만)
+    }
+
+    // 채팅 컬렉션
+    match /chats/{rideId}/messages/{messageId} {
+      allow read: if true;
+      allow create: if request.resource.data.keys().hasAll(['senderId', 'senderName', 'text', 'createdAt']);
+      allow update, delete: if false; // 메시지 수정/삭제 금지
+    }
+
+    // 기타 컬렉션 — 기본 차단
     match /{document=**} {
-      allow read, write: if true;
+      allow read: if false;
+      allow write: if false;
     }
   }
 }
+
+// ──────────────────────────────────────────────
+// Firebase Auth 도입 후 적용할 규칙 (TODO)
+// ──────────────────────────────────────────────
+// match /users/{userId} {
+//   allow read: if request.auth != null;
+//   allow write: if request.auth != null && request.auth.uid == userId;
+//   // passwordHash 필드는 서버에서만 접근
+// }
+// match /routes/{routeId} {
+//   allow read: if request.auth != null;
+//   allow create: if request.auth != null && request.resource.data.driverId == request.auth.uid;
+//   allow update: if request.auth != null && resource.data.driverId == request.auth.uid;
+// }
+// match /rides/{rideId} {
+//   allow read: if request.auth != null && (resource.data.driverId == request.auth.uid || resource.data.passengerId == request.auth.uid);
+//   allow create: if request.auth != null && request.resource.data.passengerId == request.auth.uid;
+//   allow update: if request.auth != null;
+// }

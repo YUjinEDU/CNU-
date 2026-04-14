@@ -49,25 +49,35 @@ export async function login(employeeId: string, password: string): Promise<User>
   const snap = await getDoc(docRef);
 
   if (!snap.exists()) {
-    throw new Error('등록되지 않은 교번입니다.');
+    throw new Error('교번 또는 비밀번호가 올바르지 않습니다.');
   }
 
   const userData = snap.data() as User;
   const passwordHash = await hashPassword(password);
 
   if (userData.passwordHash !== passwordHash) {
-    throw new Error('비밀번호가 올바르지 않습니다.');
+    throw new Error('교번 또는 비밀번호가 올바르지 않습니다.');
   }
 
   localStorage.setItem(SESSION_KEY, employeeId);
   return userData;
 }
 
-export async function resetPassword(employeeId: string, newPassword: string): Promise<void> {
+export async function resetPassword(
+  employeeId: string,
+  name: string,
+  department: string,
+  newPassword: string
+): Promise<void> {
   const docRef = doc(db, 'users', employeeId);
   const snap = await getDoc(docRef);
   if (!snap.exists()) {
-    throw new Error('등록되지 않은 교번입니다.');
+    throw new Error('입력 정보가 일치하지 않습니다.');
+  }
+  const userData = snap.data();
+  // 본인 확인 — 이름 + 학과 일치 여부
+  if (userData.name !== name.trim() || userData.department !== department.trim()) {
+    throw new Error('입력 정보가 일치하지 않습니다.');
   }
   if (newPassword.length < 6) {
     throw new Error('비밀번호는 6자 이상이어야 합니다.');

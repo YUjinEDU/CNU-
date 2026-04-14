@@ -1,6 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { checkOrigin } from './_cors';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (!checkOrigin(req, res)) return;
   const { query } = req.query;
   if (!query) {
     return res.status(400).json({ error: 'query parameter required' });

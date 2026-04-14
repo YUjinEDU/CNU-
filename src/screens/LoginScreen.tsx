@@ -19,6 +19,8 @@ export function LoginScreen() {
   const [error, setError] = useState('');
   const [showReset, setShowReset] = useState(false);
   const [resetId, setResetId] = useState('');
+  const [resetName, setResetName] = useState('');
+  const [resetDept, setResetDept] = useState('');
   const [resetPw, setResetPw] = useState('');
   const [resetMsg, setResetMsg] = useState('');
   const [resetLoading, setResetLoading] = useState(false);
@@ -127,7 +129,7 @@ export function LoginScreen() {
         </button>
 
         <button
-          onClick={() => { setShowReset(true); setResetMsg(''); setResetId(''); setResetPw(''); }}
+          onClick={() => { setShowReset(true); setResetMsg(''); setResetId(''); setResetName(''); setResetDept(''); setResetPw(''); }}
           className="w-full text-center text-sm text-on-surface-variant font-medium py-2"
         >
           비밀번호를 잊으셨나요?
@@ -146,24 +148,28 @@ export function LoginScreen() {
             </div>
             <div className="space-y-3">
               <div>
-                <label className="text-xs font-bold text-on-surface-variant uppercase tracking-widest ml-1">교번</label>
-                <input
-                  type="text"
-                  value={resetId}
-                  onChange={e => setResetId(e.target.value)}
+                <label className="text-xs font-bold text-on-surface-variant ml-1">교번</label>
+                <input type="text" value={resetId} onChange={e => setResetId(e.target.value)}
                   className="w-full mt-1 px-4 py-3 bg-surface-container-lowest rounded-xl text-on-surface font-semibold shadow-sm focus:ring-2 focus:ring-primary-container outline-none"
-                  placeholder="가입한 교번 입력"
-                />
+                  placeholder="가입한 교번" />
               </div>
               <div>
-                <label className="text-xs font-bold text-on-surface-variant uppercase tracking-widest ml-1">새 비밀번호 (6자 이상)</label>
-                <input
-                  type="password"
-                  value={resetPw}
-                  onChange={e => setResetPw(e.target.value)}
+                <label className="text-xs font-bold text-on-surface-variant ml-1">이름 (본인 확인)</label>
+                <input type="text" value={resetName} onChange={e => setResetName(e.target.value)}
                   className="w-full mt-1 px-4 py-3 bg-surface-container-lowest rounded-xl text-on-surface font-semibold shadow-sm focus:ring-2 focus:ring-primary-container outline-none"
-                  placeholder="새 비밀번호 입력"
-                />
+                  placeholder="가입 시 입력한 이름" />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-on-surface-variant ml-1">소속 (본인 확인)</label>
+                <input type="text" value={resetDept} onChange={e => setResetDept(e.target.value)}
+                  className="w-full mt-1 px-4 py-3 bg-surface-container-lowest rounded-xl text-on-surface font-semibold shadow-sm focus:ring-2 focus:ring-primary-container outline-none"
+                  placeholder="가입 시 입력한 소속" />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-on-surface-variant ml-1">새 비밀번호 (6자 이상)</label>
+                <input type="password" value={resetPw} onChange={e => setResetPw(e.target.value)}
+                  className="w-full mt-1 px-4 py-3 bg-surface-container-lowest rounded-xl text-on-surface font-semibold shadow-sm focus:ring-2 focus:ring-primary-container outline-none"
+                  placeholder="새 비밀번호" />
               </div>
               {resetMsg && (
                 <p className={`text-sm font-medium text-center ${resetMsg.includes('완료') ? 'text-green-600' : 'text-red-500'}`}>
@@ -173,10 +179,10 @@ export function LoginScreen() {
             </div>
             <button
               onClick={async () => {
-                if (!resetId || !resetPw) { setResetMsg('교번과 새 비밀번호를 입력해주세요.'); return; }
+                if (!resetId || !resetName || !resetDept || !resetPw) { setResetMsg('모든 항목을 입력해주세요.'); return; }
                 setResetLoading(true);
                 try {
-                  await resetPassword(resetId.trim(), resetPw);
+                  await resetPassword(resetId.trim(), resetName.trim(), resetDept.trim(), resetPw);
                   setResetMsg('비밀번호 재설정 완료! 새 비밀번호로 로그인하세요.');
                   setTimeout(() => setShowReset(false), 2000);
                 } catch (e: any) {
