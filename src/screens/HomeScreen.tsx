@@ -171,15 +171,18 @@ export function HomeScreen() {
         </div>
       ) : null}
 
-      {/* 현재 운행 현황 */}
-      {availableRoutes.length > 0 && (
-        <div className="bg-blue-50 rounded-xl px-5 py-3 flex items-center justify-center gap-4">
-          <span className="text-sm font-bold text-primary-container">
-            현재 <span className="text-lg">{availableRoutes.length}</span>대 운행 중
-          </span>
-          <span className="text-xs text-blue-500">실시간</span>
-        </div>
-      )}
+      {/* 현재 모집 현황 — 자기 route 제외 + 좌석 있는 것만 */}
+      {(() => {
+        const othersRoutes = availableRoutes.filter(r => r.driverId !== user?.uid && (r.availableSeats ?? 1) > 0);
+        return othersRoutes.length > 0 ? (
+          <div className="bg-blue-50 rounded-xl px-5 py-3 flex items-center justify-center gap-4">
+            <span className="text-sm font-bold text-primary-container">
+              현재 <span className="text-lg">{othersRoutes.length}</span>대 카풀 모집 중
+            </span>
+            <span className="text-xs text-blue-500 animate-pulse">실시간</span>
+          </div>
+        ) : null;
+      })()}
 
       {/* Action Grid */}
       <div className="grid grid-cols-1 gap-4">

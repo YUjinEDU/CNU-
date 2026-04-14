@@ -13,10 +13,13 @@ export function PassengerSearchScreen() {
   const [applying, setApplying] = useState<string | null>(null);
   const isReturn = searchMode === 'return';
 
+  // 자기 자신의 route 제외 + 좌석 0 제외
   // 출근: 내 집 ↔ 운전자 출발지(sourceCoord) 거리순
   // 퇴근: 내 집 ↔ 운전자 도착지(destCoord) 거리순
   const sortedRoutes = useMemo(() => {
-    return [...availableRoutes].sort((a, b) => {
+    return [...availableRoutes]
+    .filter(r => r.driverId !== user?.uid && (r.availableSeats ?? 1) > 0)
+    .sort((a, b) => {
       if (pickupPoint) {
         const coordA = isReturn ? a.destCoord : a.sourceCoord;
         const coordB = isReturn ? b.destCoord : b.sourceCoord;

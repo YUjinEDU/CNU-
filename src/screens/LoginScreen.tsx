@@ -57,7 +57,7 @@ export function LoginScreen() {
           <div className="flex justify-center gap-3 pt-2">
             <span className="bg-blue-50 text-primary-container px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5">
               <Car className="w-3.5 h-3.5" />
-              운행 {activeCount}건
+              모집 중 {activeCount}건
             </span>
             <span className="bg-green-50 text-green-700 px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5">
               <Users className="w-3.5 h-3.5" />

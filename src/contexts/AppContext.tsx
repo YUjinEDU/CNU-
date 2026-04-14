@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { AppState, User, Route, Ride, Coordinate } from '../types';
 import { getCurrentEmployeeId } from '../lib/authService';
-import { getUser, subscribeToActiveRoutes, getMyActiveRoute, getMyActiveRide, getRouteById } from '../lib/firebaseDb';
+import { getUser, subscribeToActiveRoutes, getMyActiveRoute, getMyActiveRide, getRouteById, updateRouteStatus } from '../lib/firebaseDb';
 
 interface AppContextType {
   state: AppState;
@@ -94,7 +94,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             getMyActiveRoute(employeeId),
             getMyActiveRide(employeeId),
           ]);
-          if (activeRoute) setCurrentRoute(activeRoute);
+          if (activeRoute) {
+            // 24시간 지난 route는 자동 만료
+            const routeAge = Date.now() - new Date(activeRoute.createdAt).getTime();
+            if (routeAge > 24 * 60 * 60 * 1000) {
+              if (activeRoute.id) {
+                try { await updateRouteStatus(activeRoute.id, 'cancelled'); } catch {}
+              }
+            } else {
+              setCurrentRoute(activeRoute);
+            }
+          }
           if (activeRide) {
             setCurrentRide(activeRide);
             // ride에 연결된 route도 복원
