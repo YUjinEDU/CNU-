@@ -1,17 +1,29 @@
+import { useEffect } from 'react';
 import { Car, Users, Calendar, Rocket, Hand, AlertTriangle, MessageCircle, Clock, CheckCircle } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useApp } from '../contexts/AppContext';
+import { getRouteById } from '../lib/firebaseDb';
 import { getRestrictionMessage } from '../lib/vehicleUtils';
 import { showConfirm } from '../components/ConfirmModal';
 
 export function HomeScreen() {
-  const { user, setState, currentRoute, currentRide, selectedRoute, clearActiveCarpool, availableRoutes } = useApp();
+  const { user, setState, currentRoute, currentRide, selectedRoute, clearActiveCarpool, availableRoutes, setCurrentRoute } = useApp();
 
   const plateNumber = user?.vehicle?.plateNumber || '';
   const restriction = getRestrictionMessage(plateNumber);
 
+  // 홈 진입 시 currentRoute가 더 이상 active가 아니면 정리
+  useEffect(() => {
+    if (!currentRoute?.id) return;
+    getRouteById(currentRoute.id).then(route => {
+      if (!route || route.status !== 'active') {
+        setCurrentRoute(null);
+      }
+    });
+  }, [currentRoute?.id]);
+
   // 진행 중인 카풀 상태 판단
-  const hasActiveRoute = currentRoute && currentRoute.status === 'active';
+  const hasActiveRoute = currentRoute && currentRoute.status === 'active' && (currentRoute.availableSeats ?? 1) > 0;
   const rideStatus = currentRide?.status;
   const isDriverForRide = currentRide?.driverId === user?.uid;
   const hasActiveRide = rideStatus && !['completed', 'cancelled', 'rejected'].includes(rideStatus);

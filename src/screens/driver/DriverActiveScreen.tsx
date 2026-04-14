@@ -22,12 +22,17 @@ export function DriverActiveScreen() {
     return unsubscribe;
   }, [user?.uid]);
 
-  // 좌석 수 실시간 갱신
+  // 좌석 수 실시간 갱신 + 0이면 자동 마감
   useEffect(() => {
     if (!currentRoute?.id) return;
     const interval = setInterval(async () => {
       const route = await getRouteById(currentRoute.id!);
-      if (route) setRemainingSeats(route.availableSeats ?? 0);
+      if (route) {
+        setRemainingSeats(route.availableSeats ?? 0);
+        if ((route.availableSeats ?? 0) <= 0 && route.status === 'active') {
+          await updateRouteStatus(currentRoute.id!, 'matched');
+        }
+      }
     }, 3000);
     return () => clearInterval(interval);
   }, [currentRoute?.id]);
