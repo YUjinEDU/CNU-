@@ -48,18 +48,19 @@ export function SignupScreen() {
       ? { plateNumber, model: carModel, color: carColor, seatCapacity: 4 }
       : undefined;
 
-    const userData: Omit<User, 'uid' | 'passwordHash' | 'createdAt'> = {
+    // Firestore는 undefined 필드를 거부하므로 조건부 포함
+    const userData: Record<string, any> = {
       name,
       employeeNumber: employeeId,
       department: dept,
       role,
       isVerified: true,
-      savedAddresses: addresses.length > 0 ? addresses : undefined,
-      vehicle,
     };
+    if (addresses.length > 0) userData.savedAddresses = addresses;
+    if (vehicle) userData.vehicle = vehicle;
 
     try {
-      const newUser = await signup(employeeId.trim(), password, userData);
+      const newUser = await signup(employeeId.trim(), password, userData as any);
       setUser(newUser);
       showToast(`${newUser.name}님, 가입을 환영합니다!`, 'success');
       setState('HOME');
