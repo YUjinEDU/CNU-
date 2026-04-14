@@ -7,6 +7,7 @@ import { ChatHistoryModal } from '../components/ChatHistoryModal';
 import { User, Route, Ride } from '../types';
 import { collection, getDocs, query, orderBy, limit } from 'firebase/firestore';
 import { db } from '../firebase';
+import { showToast } from '../components/Toast';
 
 export function AdminScreen() {
   const { setState } = useApp();
@@ -28,7 +29,7 @@ export function AdminScreen() {
       const ridesSnap = await getDocs(ridesQ);
       setRides(ridesSnap.docs.map(d => ({ ...d.data(), id: d.id } as Ride)));
     } catch (e: any) {
-      alert('데이터 로드 실패: ' + e.message);
+      showToast('데이터 로드 실패: ' + e.message, 'error');
     } finally {
       setLoading(false);
     }

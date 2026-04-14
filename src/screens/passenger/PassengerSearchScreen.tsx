@@ -5,6 +5,7 @@ import { Route } from '../../types';
 import { createRide, hasActiveRide } from '../../lib/firebaseDb';
 import { getDistance } from '../../lib/geoUtils';
 import { useApp } from '../../contexts/AppContext';
+import { showToast } from '../../components/Toast';
 
 export function PassengerSearchScreen() {
   const { setState, availableRoutes, setSelectedRoute, pickupPoint, user, setCurrentRide, searchMode } = useApp();
@@ -34,7 +35,7 @@ export function PassengerSearchScreen() {
     try {
       const active = await hasActiveRide(user.uid);
       if (active) {
-        alert('이미 진행 중인 카풀이 있습니다. 기존 건을 취소 후 신청해주세요.');
+        showToast('이미 진행 중인 카풀이 있습니다. 기존 건을 취소 후 신청해주세요.', 'info');
         return;
       }
       // Firestore는 undefined 필드를 거부하므로 조건부 포함
@@ -56,7 +57,7 @@ export function PassengerSearchScreen() {
       setState('PASSENGER_MATCHED');
     } catch (e: unknown) {
       const err = e as { message?: string };
-      alert(err.message || '신청 중 오류가 발생했습니다.');
+      showToast(err.message || '신청 중 오류가 발생했습니다.', 'error');
     } finally {
       setApplying(null);
     }

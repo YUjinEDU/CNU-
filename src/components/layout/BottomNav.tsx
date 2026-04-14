@@ -1,6 +1,7 @@
 import { Home as HomeIcon, Car, Users, User as UserIcon, MessageCircle } from 'lucide-react';
 import { useApp } from '../../contexts/AppContext';
 import { getRestrictionMessage } from '../../lib/vehicleUtils';
+import { showToast } from '../Toast';
 
 export function BottomNav() {
   const { state, setState, currentRide, currentRoute, user } = useApp();
@@ -19,7 +20,7 @@ export function BottomNav() {
     } else if (hasActiveRoute) {
       setState('DRIVER_ACTIVE');
     } else if (restriction && !restriction.canDrive) {
-      alert(`오늘은 2부제 적용으로 운행이 불가합니다.\n${restriction.description}`);
+      showToast(`오늘은 2부제 적용으로 운행이 불가합니다. ${restriction.description}`, 'error');
     } else {
       setState('DRIVER_SETUP');
     }

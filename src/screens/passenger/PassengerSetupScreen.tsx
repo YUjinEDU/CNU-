@@ -6,6 +6,7 @@ import { Coordinate } from '../../types';
 import { AddressSearch } from '../../components/AddressSearch';
 import { CampusBuildingSelector } from '../../components/CampusBuildingSelector';
 import { useApp } from '../../contexts/AppContext';
+import { showToast } from '../../components/Toast';
 
 export function PassengerSetupScreen() {
   const { user, setState, setPickupPoint, setSearchMode } = useApp();
@@ -34,7 +35,7 @@ export function PassengerSetupScreen() {
 
   const handleSearch = () => {
     if (!campusZone) {
-      alert('캠퍼스 권역을 선택해주세요.');
+      showToast('캠퍼스 권역을 선택해주세요.', 'info');
       return;
     }
     // 양쪽 모두 집 좌표를 기준으로 정렬 (출근: sourceCoord, 퇴근: destCoord)

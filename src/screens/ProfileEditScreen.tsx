@@ -5,6 +5,7 @@ import { SavedAddress } from '../types';
 import { AddressAutocomplete } from '../components/AddressAutocomplete';
 import { saveUser } from '../lib/firebaseDb';
 import { useApp } from '../contexts/AppContext';
+import { showToast } from '../components/Toast';
 
 export function ProfileEditScreen() {
   const { user, setUser, setState } = useApp();
@@ -19,7 +20,7 @@ export function ProfileEditScreen() {
 
   const handleSave = async () => {
     if (addresses.some(a => !a.name)) {
-      alert('모든 주소를 입력해주세요.');
+      showToast('모든 주소를 입력해주세요.', 'info');
       return;
     }
     if (!user) return;
@@ -34,7 +35,7 @@ export function ProfileEditScreen() {
       setUser(updatedUser);
       setState('PROFILE');
     } catch (error) {
-      alert("프로필 업데이트 중 오류가 발생했습니다.");
+      showToast('프로필 업데이트 중 오류가 발생했습니다.', 'error');
     }
   };
 

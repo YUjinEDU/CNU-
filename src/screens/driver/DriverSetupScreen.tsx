@@ -3,6 +3,7 @@ import { Car, MapPin, Building2, ChevronDown, Clock, Minus, Plus } from 'lucide-
 import { motion } from 'motion/react';
 import { createRoute } from '../../lib/firebaseDb';
 import { useApp } from '../../contexts/AppContext';
+import { showToast } from '../../components/Toast';
 
 export function DriverSetupScreen() {
   const {
@@ -58,7 +59,7 @@ export function DriverSetupScreen() {
       setCurrentRoute(route);
       setState('DRIVER_ACTIVE');
     } catch (e: any) {
-      alert(e.message || '운행 등록 중 오류가 발생했습니다. 다시 시도해주세요.');
+      showToast(e.message || '운행 등록 중 오류가 발생했습니다.', 'error');
     } finally {
       setIsSubmitting(false);
     }

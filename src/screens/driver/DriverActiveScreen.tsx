@@ -6,6 +6,7 @@ import { subscribeToRidesByDriver, acceptRide, rejectRide, updateRouteStatus, ge
 import { sendSystemMessage } from '../../lib/chatService';
 import { getDistance } from '../../lib/geoUtils';
 import { useApp } from '../../contexts/AppContext';
+import { showToast } from '../../components/Toast';
 
 export function DriverActiveScreen() {
   const { setState, user, driverSource, driverDest, setCurrentRide, driverSourceCoord, currentRoute, clearActiveCarpool } = useApp();
@@ -37,7 +38,7 @@ export function DriverActiveScreen() {
       setCurrentRide({ ...ride, status: 'accepted' });
       setState('DRIVER_MATCHED');
     } catch (e: any) {
-      alert(e.message || '수락 중 오류가 발생했습니다.');
+      showToast(e.message || '수락 중 오류가 발생했습니다.', 'error');
     }
   };
 
@@ -47,7 +48,7 @@ export function DriverActiveScreen() {
       await rejectRide(ride.id);
       await sendSystemMessage(ride.id, '운전자가 탑승 신청을 거절했습니다.');
     } catch (e: any) {
-      alert(e.message || '거절 중 오류가 발생했습니다.');
+      showToast(e.message || '거절 중 오류가 발생했습니다.', 'error');
     }
   };
 
@@ -182,7 +183,7 @@ export function DriverActiveScreen() {
           if (!confirm('운행을 취소하시겠습니까?')) return;
           if (currentRoute?.id) {
             try { await updateRouteStatus(currentRoute.id, 'cancelled'); } catch (e: any) {
-              alert(e.message || '운행 취소 중 오류가 발생했습니다.');
+              showToast(e.message || '운행 취소 중 오류가 발생했습니다.', 'error');
             }
           }
           clearActiveCarpool();

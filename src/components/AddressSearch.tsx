@@ -1,6 +1,7 @@
 import React, { useCallback } from 'react';
 import { MapPin, Search } from 'lucide-react';
 import { geocode } from '../lib/naverApi';
+import { showToast } from './Toast';
 
 // Daum Postcode 타입
 declare global {
@@ -63,7 +64,7 @@ export const AddressSearch: React.FC<AddressSearchProps> = ({
     try {
       await loadDaumPostcode();
     } catch {
-      alert('주소 검색 서비스를 불러올 수 없습니다.');
+      showToast('주소 검색 서비스를 불러올 수 없습니다.', 'error');
       return;
     }
 
