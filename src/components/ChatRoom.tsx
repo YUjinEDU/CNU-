@@ -172,11 +172,20 @@ export function ChatRoom() {
         <button onClick={handleBack} className="p-2 rounded-full bg-surface-container-lowest">
           <ArrowLeft className="w-5 h-5 text-on-surface" />
         </button>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-1">
           <MessageCircle className="w-5 h-5 text-primary-container" />
           <div>
-            <p className="font-bold text-on-surface text-sm">픽업 위치 조율</p>
-            <p className="text-xs text-on-surface-variant">만날 장소를 채팅으로 정하세요</p>
+            <p className="font-bold text-on-surface text-sm">
+              {myRole === 'driver'
+                ? (liveRide?.passengerName || '탑승자')
+                : (selectedRoute?.driverName || liveRide?.driverName || '운전자')
+              } 님과 채팅
+            </p>
+            <p className="text-xs text-on-surface-variant">
+              {status === 'accepted' && '픽업 장소를 정해주세요'}
+              {status === 'confirming' && '합의 확정 진행 ���'}
+              {status === 'confirmed' && '매칭 확정 — 이동 중'}
+            </p>
           </div>
         </div>
       </div>
@@ -275,34 +284,39 @@ export function ChatRoom() {
             )}
             {status === 'confirmed' && (
               <>
-                <button
-                  onClick={handleArrived}
-                  disabled={!!iArrived}
-                  className={`flex-1 py-2.5 rounded-xl text-sm font-bold active:scale-95 transition-all ${
-                    iArrived
-                      ? 'bg-green-100 text-green-600'
-                      : 'bg-blue-500 text-white'
-                  }`}
-                >
-                  {iArrived ? '도착 완료 ✓' : '도착했어요 📍'}
-                </button>
-                <button
-                  onClick={handleBoarded}
-                  disabled={!!iBoarded}
-                  className={`flex-1 py-2.5 rounded-xl text-sm font-bold active:scale-95 transition-all ${
-                    iBoarded
-                      ? 'bg-orange-100 text-orange-600'
-                      : 'bg-orange-500 text-white'
-                  }`}
-                >
-                  {iBoarded ? '탑승 완료 ✓' : '탑승했어요 🚗'}
-                </button>
-                <button
-                  onClick={handleComplete}
-                  className="flex-1 py-2.5 bg-primary-container text-white rounded-xl text-sm font-bold active:scale-95 transition-all"
-                >
-                  하차 완료
-                </button>
+                {/* 단계 1: 도착 */}
+                {!iArrived && (
+                  <button
+                    onClick={handleArrived}
+                    className="flex-1 py-3 bg-blue-500 text-white rounded-xl text-sm font-bold active:scale-95 transition-all"
+                  >
+                    약속 장소 도착 📍
+                  </button>
+                )}
+                {/* 단계 2: 탑승 (도착 후) */}
+                {iArrived && !iBoarded && (
+                  <button
+                    onClick={handleBoarded}
+                    className="flex-1 py-3 bg-orange-500 text-white rounded-xl text-sm font-bold active:scale-95 transition-all"
+                  >
+                    차량 탑승 완료 🚗
+                  </button>
+                )}
+                {/* 단계 3: 하차 (탑승 후) */}
+                {iBoarded && (
+                  <button
+                    onClick={handleComplete}
+                    className="flex-1 py-3 bg-primary-container text-white rounded-xl text-sm font-bold active:scale-95 transition-all"
+                  >
+                    목적지 도착 · 하차 완료
+                  </button>
+                )}
+                {/* 진행 상태 표시 */}
+                <div className="flex items-center gap-1 ml-2">
+                  <div className={`w-2 h-2 rounded-full ${iArrived ? 'bg-green-500' : 'bg-slate-300'}`} />
+                  <div className={`w-2 h-2 rounded-full ${iBoarded ? 'bg-orange-500' : 'bg-slate-300'}`} />
+                  <div className={`w-2 h-2 rounded-full bg-slate-300`} />
+                </div>
               </>
             )}
           </div>
