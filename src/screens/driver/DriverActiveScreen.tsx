@@ -101,11 +101,11 @@ export function DriverActiveScreen() {
           <div className="flex-1 space-y-4">
             <div>
               <p className="text-[10px] font-bold text-on-surface-variant">출발</p>
-              <p className="font-semibold text-on-surface">{driverSource || '출발지'}</p>
+              <p className="font-semibold text-on-surface">{currentRoute?.sourceName || driverSource || '출발지'}</p>
             </div>
             <div>
               <p className="text-[10px] font-bold text-on-surface-variant">도착</p>
-              <p className="font-semibold text-on-surface">{driverDest || '도착지'}</p>
+              <p className="font-semibold text-on-surface">{currentRoute?.destName || driverDest || '도착지'}</p>
             </div>
           </div>
         </div>

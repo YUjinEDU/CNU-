@@ -3,7 +3,6 @@ import { X, Clock, Users, Calendar } from 'lucide-react';
 import { format, addDays } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { Route } from '../types';
-import { updateRideField } from '../lib/firebaseDb';
 import { showToast } from './Toast';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase';

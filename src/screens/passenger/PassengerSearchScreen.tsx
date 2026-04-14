@@ -34,7 +34,7 @@ export function PassengerSearchScreen() {
       }
       return (a.departureTime ?? '').localeCompare(b.departureTime ?? '');
     });
-  }, [availableRoutes, pickupPoint, isReturn]);
+  }, [availableRoutes, pickupPoint, isReturn, searchDate]);
 
   const handleApply = async (route: Route) => {
     if (!user || !route.id) return;

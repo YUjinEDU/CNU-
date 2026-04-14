@@ -61,7 +61,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [driverSourceCoord, setDriverSourceCoord] = useState<Coordinate | null>(null);
   const [driverDestCoord, setDriverDestCoord] = useState<Coordinate | null>(null);
   const [searchMode, setSearchMode] = useState<'commute' | 'return'>('commute');
-  const [searchDate, setSearchDate] = useState<string>(new Date().toISOString().slice(0, 10));
+  const [searchDate, setSearchDate] = useState<string>(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  });
 
   // Wrapper: HOME 이동 시 임시 UI 상태만 정리 (활성 카풀은 유지)
   const setState = (newState: AppState) => {

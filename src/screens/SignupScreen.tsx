@@ -61,7 +61,6 @@ export function SignupScreen() {
     try {
       const newUser = await signup(employeeId.trim(), password, userData);
       setUser(newUser);
-      const { showToast } = await import('../components/Toast');
       showToast(`${newUser.name}님, 가입을 환영합니다!`, 'success');
       setState('HOME');
     } catch (e: any) {
