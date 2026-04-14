@@ -3,6 +3,8 @@ import { Search, Building, FlaskConical, Building2, Tractor, MapPin, ArrowRightL
 import { motion } from 'motion/react';
 import { format, addDays } from 'date-fns';
 import { ko } from 'date-fns/locale';
+import { DayPicker } from 'react-day-picker';
+import 'react-day-picker/style.css';
 import { Coordinate } from '../../types';
 // import { MapComponent } from '../../components/MapComponent';  // 지도 비활성화
 import { AddressSearch } from '../../components/AddressSearch';
@@ -87,24 +89,36 @@ export function PassengerSetupScreen() {
 
       {/* 날짜 선택 */}
       <div className="bg-surface-container-lowest rounded-xl p-4 shadow-sm">
-        <div className="flex items-center gap-2 mb-3">
-          <Calendar className="w-4 h-4 text-primary-container" />
-          <label className="text-[10px] font-bold text-on-surface-variant">날짜 선택</label>
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <Calendar className="w-4 h-4 text-primary-container" />
+            <label className="text-[10px] font-bold text-on-surface-variant">날짜 선택</label>
+          </div>
+          <span className="text-sm font-bold text-primary-container">
+            {format(new Date(selectedDate + 'T00:00:00'), 'M월 d일 (EEE)', { locale: ko })}
+          </span>
         </div>
-        <div className="flex gap-2 flex-wrap">
+        <div className="flex gap-2 mb-3 flex-wrap">
           {[0, 1, 2, 3, 4, 5, 6].map(offset => {
             const d = addDays(new Date(), offset);
             const dateStr = format(d, 'yyyy-MM-dd');
             const label = offset === 0 ? '오늘' : offset === 1 ? '내일' : offset === 2 ? '모레' : format(d, 'M/d(EEE)', { locale: ko });
-            const isSelected = selectedDate === dateStr;
             return (
               <button key={offset} onClick={() => setSelectedDate(dateStr)}
-                className={`px-3.5 py-2 rounded-xl text-sm font-bold transition-all ${isSelected ? 'bg-primary-container text-white shadow-md' : 'bg-slate-100 text-slate-500'}`}>
+                className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${selectedDate === dateStr ? 'bg-primary-container text-white' : 'bg-slate-100 text-slate-500'}`}>
                 {label}
               </button>
             );
           })}
         </div>
+        <DayPicker
+          mode="single"
+          selected={new Date(selectedDate + 'T00:00:00')}
+          onSelect={(d) => d && setSelectedDate(format(d, 'yyyy-MM-dd'))}
+          locale={ko}
+          disabled={{ before: new Date(), after: addDays(new Date(), 14) }}
+          className="mx-auto"
+        />
       </div>
 
       <div className="space-y-6">

@@ -9,6 +9,7 @@ import { motion } from 'motion/react';
 import { createRoute } from '../../lib/firebaseDb';
 import { useApp } from '../../contexts/AppContext';
 import { showToast } from '../../components/Toast';
+import { isRestricted } from '../../lib/vehicleUtils';
 
 export function DriverSetupScreen() {
   const {
@@ -162,13 +163,22 @@ export function DriverSetupScreen() {
           </div>
           {/* 빠른 선택 칩 */}
           <div className="flex gap-2 mb-3 flex-wrap">
-            {[0, 1, 2, 3].map(offset => {
+            {[0, 1, 2, 3, 4, 5, 6].map(offset => {
               const d = addDays(new Date(), offset);
               const label = offset === 0 ? '오늘' : offset === 1 ? '내일' : offset === 2 ? '모레' : format(d, 'M/d(EEE)', { locale: ko });
               const isSelected = format(departureDate, 'yyyy-MM-dd') === format(d, 'yyyy-MM-dd');
+              const plate = user?.vehicle?.plateNumber || '';
+              const restricted = plate ? isRestricted(plate, d) : false;
               return (
-                <button key={offset} onClick={() => setDepartureDate(d)}
-                  className={`px-3.5 py-1.5 rounded-full text-sm font-bold transition-all ${isSelected ? 'bg-primary-container text-white shadow-md' : 'bg-slate-100 text-slate-500'}`}>
+                <button key={offset} onClick={() => !restricted && setDepartureDate(d)}
+                  disabled={restricted}
+                  className={`px-3.5 py-1.5 rounded-full text-sm font-bold transition-all ${
+                    restricted
+                      ? 'bg-slate-100 text-slate-300 cursor-not-allowed line-through'
+                      : isSelected
+                        ? 'bg-primary-container text-white shadow-md'
+                        : 'bg-slate-100 text-slate-500'
+                  }`}>
                   {label}
                 </button>
               );
@@ -179,7 +189,13 @@ export function DriverSetupScreen() {
             selected={departureDate}
             onSelect={(d) => d && setDepartureDate(d)}
             locale={ko}
-            disabled={{ before: new Date(), after: addDays(new Date(), 7) }}
+            disabled={(date) => {
+              if (date < new Date(new Date().setHours(0, 0, 0, 0))) return true;
+              if (date > addDays(new Date(), 14)) return true;
+              const plate = user?.vehicle?.plateNumber || '';
+              if (plate && isRestricted(plate, date)) return true;
+              return false;
+            }}
             className="mx-auto"
           />
         </div>
