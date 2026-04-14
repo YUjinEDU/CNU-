@@ -1,6 +1,8 @@
 import { useState } from 'react';
-import { Search, Building, FlaskConical, Building2, Tractor, MapPin, ArrowRightLeft } from 'lucide-react';
+import { Search, Building, FlaskConical, Building2, Tractor, MapPin, ArrowRightLeft, Calendar } from 'lucide-react';
 import { motion } from 'motion/react';
+import { format, addDays } from 'date-fns';
+import { ko } from 'date-fns/locale';
 import { Coordinate } from '../../types';
 // import { MapComponent } from '../../components/MapComponent';  // 지도 비활성화
 import { AddressSearch } from '../../components/AddressSearch';
@@ -9,7 +11,7 @@ import { useApp } from '../../contexts/AppContext';
 import { showToast } from '../../components/Toast';
 
 export function PassengerSetupScreen() {
-  const { user, setState, setPickupPoint, setSearchMode } = useApp();
+  const { user, setState, setPickupPoint, setSearchMode, setSearchDate } = useApp();
 
   // 출퇴근 모드
   const [mode, setMode] = useState<'commute' | 'return'>('commute');
@@ -21,6 +23,9 @@ export function PassengerSetupScreen() {
   const [homeCoords, setHomeCoords] = useState<Coordinate | null>(
     hasValidCoord ? { lat: firstAddr.lat, lng: firstAddr.lng } : null
   );
+
+  // 날짜
+  const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
 
   // 캠퍼스 권역
   const [campusZone, setCampusZone] = useState('');
@@ -43,6 +48,7 @@ export function PassengerSetupScreen() {
       setPickupPoint(homeCoords);
     }
     setSearchMode(mode);
+    setSearchDate(selectedDate);
     setState('PASSENGER_SEARCH');
   };
 
@@ -77,6 +83,28 @@ export function PassengerSetupScreen() {
         >
           🌆 퇴근 (학교 → 집)
         </button>
+      </div>
+
+      {/* 날짜 선택 */}
+      <div className="bg-surface-container-lowest rounded-xl p-4 shadow-sm">
+        <div className="flex items-center gap-2 mb-3">
+          <Calendar className="w-4 h-4 text-primary-container" />
+          <label className="text-[10px] font-bold text-on-surface-variant">날짜 선택</label>
+        </div>
+        <div className="flex gap-2 flex-wrap">
+          {[0, 1, 2, 3, 4, 5, 6].map(offset => {
+            const d = addDays(new Date(), offset);
+            const dateStr = format(d, 'yyyy-MM-dd');
+            const label = offset === 0 ? '오늘' : offset === 1 ? '내일' : offset === 2 ? '모레' : format(d, 'M/d(EEE)', { locale: ko });
+            const isSelected = selectedDate === dateStr;
+            return (
+              <button key={offset} onClick={() => setSelectedDate(dateStr)}
+                className={`px-3.5 py-2 rounded-xl text-sm font-bold transition-all ${isSelected ? 'bg-primary-container text-white shadow-md' : 'bg-slate-100 text-slate-500'}`}>
+                {label}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       <div className="space-y-6">

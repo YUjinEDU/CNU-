@@ -8,16 +8,20 @@ import { useApp } from '../../contexts/AppContext';
 import { showToast } from '../../components/Toast';
 
 export function PassengerSearchScreen() {
-  const { setState, availableRoutes, setSelectedRoute, pickupPoint, user, setCurrentRide, searchMode } = useApp();
+  const { setState, availableRoutes, setSelectedRoute, pickupPoint, user, setCurrentRide, searchMode, searchDate } = useApp();
   const [applying, setApplying] = useState<string | null>(null);
   const isReturn = searchMode === 'return';
 
-  // 자기 자신의 route 제외 + 좌석 0 제외
-  // 출근: 내 집 ↔ 운전자 출발지(sourceCoord) 거리순
-  // 퇴근: 내 집 ↔ 운전자 도착지(destCoord) 거리순
+  // 자기 route 제외 + 좌석 0 제외 + 날짜 필터
   const sortedRoutes = useMemo(() => {
     return [...availableRoutes]
-    .filter(r => r.driverId !== user?.uid && (r.availableSeats ?? 1) > 0)
+    .filter(r => {
+      if (r.driverId === user?.uid) return false;
+      if ((r.availableSeats ?? 1) <= 0) return false;
+      // 날짜 필터: departureDate가 있으면 매칭, 없으면 (기존 데이터) 전부 표시
+      if (r.departureDate && r.departureDate !== searchDate) return false;
+      return true;
+    })
     .sort((a, b) => {
       if (pickupPoint) {
         const coordA = isReturn ? a.destCoord : a.sourceCoord;
@@ -74,7 +78,7 @@ export function PassengerSearchScreen() {
     >
       <div className="px-2 flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-extrabold text-primary-container">검색 결과</h2>
+          <h2 className="text-2xl font-extrabold text-primary-container">검색 결과 · {searchDate?.slice(5).replace('-', '/')}</h2>
           <p className="text-on-surface-variant text-sm font-medium">
             {pickupPoint ? (isReturn ? '내 집 방향 기준 거리순' : '내 출발지 기준 거리순') : '출발시간 빠른 순'} · {sortedRoutes.length}대
           </p>
@@ -121,7 +125,9 @@ export function PassengerSearchScreen() {
                     </div>
                     <div className="text-right">
                       <span className="text-xl font-black text-primary-container block">{route.departureTime}</span>
-                      <span className="text-[10px] font-medium text-on-surface-variant uppercase">출발</span>
+                      <span className="text-[10px] font-medium text-on-surface-variant">
+                        {route.departureDate ? route.departureDate.slice(5).replace('-', '/') : '오늘'} 출발
+                      </span>
                     </div>
                   </div>
 

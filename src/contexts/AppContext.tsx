@@ -33,6 +33,8 @@ interface AppContextType {
   clearActiveCarpool: () => void;
   searchMode: 'commute' | 'return';
   setSearchMode: (mode: 'commute' | 'return') => void;
+  searchDate: string;
+  setSearchDate: (date: string) => void;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -59,6 +61,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [driverSourceCoord, setDriverSourceCoord] = useState<Coordinate | null>(null);
   const [driverDestCoord, setDriverDestCoord] = useState<Coordinate | null>(null);
   const [searchMode, setSearchMode] = useState<'commute' | 'return'>('commute');
+  const [searchDate, setSearchDate] = useState<string>(new Date().toISOString().slice(0, 10));
 
   // Wrapper: HOME 이동 시 임시 UI 상태만 정리 (활성 카풀은 유지)
   const setState = (newState: AppState) => {
@@ -149,6 +152,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       driverDestCoord, setDriverDestCoord,
       clearActiveCarpool,
       searchMode, setSearchMode,
+      searchDate, setSearchDate,
     }}>
       {children}
     </AppContext.Provider>

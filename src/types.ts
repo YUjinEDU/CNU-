@@ -44,6 +44,7 @@ export interface Route {
   driverId: string;
   driverName: string;
   vehicle?: Vehicle;
+  departureDate?: string;  // "2026-04-15" ISO date
   departureTime?: string;
   availableSeats?: number;
   sourceName: string;
