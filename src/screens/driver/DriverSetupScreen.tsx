@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Car, MapPin, Building2, ChevronDown, Clock, Minus, Plus } from 'lucide-react';
+import Picker from 'react-mobile-picker';
 import { motion } from 'motion/react';
 import { createRoute } from '../../lib/firebaseDb';
 import { useApp } from '../../contexts/AppContext';
@@ -145,48 +146,51 @@ export function DriverSetupScreen() {
           )}
         </div>
 
-        {/* 출발 시간 */}
+        {/* 출발 시간 — iOS 휠 피커 */}
         <div className="bg-surface-container-lowest rounded-xl p-5 shadow-sm">
-          <label className="text-[10px] font-bold text-on-surface-variant mb-4 block">출발 시간</label>
-          <div className="flex items-center justify-center gap-3">
-            <button
-              onClick={() => setDepartureHour(h => h > 6 ? h - 1 : 19)}
-              className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 active:scale-90 transition-all"
-            >
-              <Minus className="w-4 h-4" />
-            </button>
-            <div className="flex items-center gap-1 bg-primary-container/5 px-6 py-3 rounded-2xl">
-              <Clock className="w-5 h-5 text-primary-container mr-2" />
-              <span className="text-4xl font-black text-primary-container tabular-nums">
-                {String(departureHour).padStart(2, '0')}
-              </span>
-              <span className="text-4xl font-black text-primary-container animate-pulse">:</span>
-              <span className="text-4xl font-black text-primary-container tabular-nums">
-                {String(departureMinute).padStart(2, '0')}
-              </span>
-            </div>
-            <button
-              onClick={() => setDepartureHour(h => h < 19 ? h + 1 : 6)}
-              className="w-10 h-10 rounded-full bg-primary-container/10 flex items-center justify-center text-primary-container active:scale-90 transition-all"
-            >
-              <Plus className="w-4 h-4" />
-            </button>
+          <div className="flex items-center gap-2 mb-3">
+            <Clock className="w-4 h-4 text-primary-container" />
+            <label className="text-[10px] font-bold text-on-surface-variant">출발 시간</label>
+            <span className="ml-auto text-lg font-black text-primary-container tabular-nums">
+              {departureTimeStr}
+            </span>
           </div>
-          {/* 분 선택 칩 */}
-          <div className="flex justify-center gap-2 mt-4 flex-wrap">
-            {[0, 10, 15, 20, 30, 40, 45, 50].map(m => (
-              <button
-                key={m}
-                onClick={() => setDepartureMinute(m)}
-                className={`px-3.5 py-1.5 rounded-full text-sm font-bold transition-all ${
-                  departureMinute === m
-                    ? 'bg-primary-container text-white shadow-md scale-105'
-                    : 'bg-slate-100 text-slate-500 active:scale-95'
-                }`}
-              >
-                :{String(m).padStart(2, '0')}
-              </button>
-            ))}
+          <div className="h-[160px] overflow-hidden rounded-xl bg-slate-50">
+            <Picker
+              value={{ hour: String(departureHour).padStart(2, '0'), minute: String(departureMinute).padStart(2, '0') }}
+              onChange={(val) => {
+                setDepartureHour(parseInt(val.hour));
+                setDepartureMinute(parseInt(val.minute));
+              }}
+              wheelMode="natural"
+              height={160}
+              itemHeight={40}
+            >
+              {/* @ts-ignore react-mobile-picker type issue */}
+              <Picker.Column name="hour">
+                {Array.from({ length: 14 }, (_, i) => i + 6).map(h => (
+                  <Picker.Item key={h} value={String(h).padStart(2, '0')}>
+                    {({ selected }) => (
+                      <span className={`text-lg tabular-nums ${selected ? 'font-black text-primary-container' : 'font-medium text-slate-400'}`}>
+                        {String(h).padStart(2, '0')}시
+                      </span>
+                    )}
+                  </Picker.Item>
+                ))}
+              </Picker.Column>
+              {/* @ts-ignore react-mobile-picker type issue */}
+              <Picker.Column name="minute">
+                {[0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55].map(m => (
+                  <Picker.Item key={m} value={String(m).padStart(2, '0')}>
+                    {({ selected }) => (
+                      <span className={`text-lg tabular-nums ${selected ? 'font-black text-primary-container' : 'font-medium text-slate-400'}`}>
+                        {String(m).padStart(2, '0')}분
+                      </span>
+                    )}
+                  </Picker.Item>
+                ))}
+              </Picker.Column>
+            </Picker>
           </div>
         </div>
 
