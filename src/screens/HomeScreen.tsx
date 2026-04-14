@@ -5,7 +5,7 @@ import { getRestrictionMessage } from '../lib/vehicleUtils';
 import { showConfirm } from '../components/ConfirmModal';
 
 export function HomeScreen() {
-  const { user, setState, currentRoute, currentRide, selectedRoute, clearActiveCarpool } = useApp();
+  const { user, setState, currentRoute, currentRide, selectedRoute, clearActiveCarpool, availableRoutes } = useApp();
 
   const plateNumber = user?.vehicle?.plateNumber || '';
   const restriction = getRestrictionMessage(plateNumber);
@@ -170,6 +170,16 @@ export function HomeScreen() {
           </div>
         </div>
       ) : null}
+
+      {/* 현재 운행 현황 */}
+      {availableRoutes.length > 0 && (
+        <div className="bg-blue-50 rounded-xl px-5 py-3 flex items-center justify-center gap-4">
+          <span className="text-sm font-bold text-primary-container">
+            현재 <span className="text-lg">{availableRoutes.length}</span>대 운행 중
+          </span>
+          <span className="text-xs text-blue-500">실시간</span>
+        </div>
+      )}
 
       {/* Action Grid */}
       <div className="grid grid-cols-1 gap-4">
