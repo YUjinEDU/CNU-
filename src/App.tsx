@@ -21,6 +21,8 @@ import { PassengerEnRouteScreen } from './screens/passenger/PassengerEnRouteScre
 import { PassengerInTransitScreen } from './screens/passenger/PassengerInTransitScreen';
 import { ChatRoom } from './components/ChatRoom';
 import { AdminScreen } from './screens/AdminScreen';
+import { ToastContainer } from './components/Toast';
+import { ConfirmModalContainer } from './components/ConfirmModal';
 
 function ErrorFallback({ error }: { error: Error }) {
   return (
@@ -84,6 +86,8 @@ export default function App() {
   return (
     <ErrorBoundary FallbackComponent={ErrorFallback}>
       <AppProvider>
+        <ToastContainer />
+        <ConfirmModalContainer />
         <AppContent />
       </AppProvider>
     </ErrorBoundary>

@@ -124,10 +124,15 @@ export function PassengerSearchScreen() {
 
                   <div className="flex items-center gap-2 text-xs flex-wrap">
                     {route.vehicle && (
-                      <span className="bg-slate-100 px-2.5 py-1 rounded-full flex items-center gap-1">
-                        <Car className="w-3 h-3" />
-                        {route.vehicle.color} {route.vehicle.model}
-                      </span>
+                      <>
+                        <span className="bg-slate-100 px-2.5 py-1 rounded-full flex items-center gap-1">
+                          <Car className="w-3 h-3" />
+                          {route.vehicle.color} {route.vehicle.model}
+                        </span>
+                        <span className="bg-slate-800 text-white px-2.5 py-1 rounded-full font-mono text-[11px] tracking-wide">
+                          {route.vehicle.plateNumber}
+                        </span>
+                      </>
                     )}
                     <span className={`px-2.5 py-1 rounded-full flex items-center gap-1 font-bold ${
                       (route.availableSeats ?? 1) > 0 ? 'bg-blue-50 text-primary-container' : 'bg-red-50 text-red-500'

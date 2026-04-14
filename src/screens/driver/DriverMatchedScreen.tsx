@@ -84,6 +84,12 @@ export function DriverMatchedScreen() {
           <MessageCircle className="w-6 h-6" />
           채팅으로 픽업 위치 정하기
         </button>
+        <button
+          onClick={() => setState('DRIVER_ACTIVE')}
+          className="w-full bg-surface-container-lowest text-primary-container py-4 rounded-xl font-bold text-sm shadow-sm flex items-center justify-center gap-2 active:scale-95 transition-all border border-primary-container/20"
+        >
+          다른 탑승 신청 확인하기
+        </button>
       </div>
     </motion.div>
   );
