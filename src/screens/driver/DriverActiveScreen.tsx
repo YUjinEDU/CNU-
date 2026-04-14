@@ -7,6 +7,7 @@ import { sendSystemMessage } from '../../lib/chatService';
 import { getDistance } from '../../lib/geoUtils';
 import { useApp } from '../../contexts/AppContext';
 import { showToast } from '../../components/Toast';
+import { showConfirm } from '../../components/ConfirmModal';
 
 export function DriverActiveScreen() {
   const { setState, user, driverSource, driverDest, setCurrentRide, driverSourceCoord, currentRoute, clearActiveCarpool } = useApp();
@@ -180,7 +181,7 @@ export function DriverActiveScreen() {
       {/* 운행 취소 */}
       <button
         onClick={async () => {
-          if (!confirm('운행을 취소하시겠습니까?')) return;
+          if (!(await showConfirm('운행을 취소하시겠습니까?'))) return;
           if (currentRoute?.id) {
             try { await updateRouteStatus(currentRoute.id, 'cancelled'); } catch (e: any) {
               showToast(e.message || '운행 취소 중 오류가 발생했습니다.', 'error');

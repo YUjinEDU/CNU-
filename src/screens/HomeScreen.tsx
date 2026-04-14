@@ -2,6 +2,7 @@ import { Car, Users, Calendar, Rocket, Hand, AlertTriangle, MessageCircle, Clock
 import { motion } from 'motion/react';
 import { useApp } from '../contexts/AppContext';
 import { getRestrictionMessage } from '../lib/vehicleUtils';
+import { showConfirm } from '../components/ConfirmModal';
 
 export function HomeScreen() {
   const { user, setState, currentRoute, currentRide, selectedRoute, clearActiveCarpool } = useApp();
@@ -127,7 +128,7 @@ export function HomeScreen() {
           </button>
           <button
             onClick={async () => {
-              if (!confirm('운행 모집을 취소하시겠습니까?')) return;
+              if (!(await showConfirm('운행 모집을 취소하시겠습니까?'))) return;
               if (currentRoute.id) {
                 try {
                   const { updateRouteStatus } = await import('../lib/firebaseDb');

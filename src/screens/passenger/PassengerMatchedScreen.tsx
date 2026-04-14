@@ -3,6 +3,8 @@ import { BadgeCheck, MessageCircle, Clock, MapPin } from 'lucide-react';
 import { motion } from 'motion/react';
 import { subscribeToRide, cancelRide } from '../../lib/firebaseDb';
 import { useApp } from '../../contexts/AppContext';
+import { showToast } from '../../components/Toast';
+import { showConfirm } from '../../components/ConfirmModal';
 
 export function PassengerMatchedScreen() {
   const { setState, currentRide, selectedRoute, setCurrentRide, user, clearActiveCarpool } = useApp();
@@ -23,17 +25,17 @@ export function PassengerMatchedScreen() {
   // 터미널 상태 자동 이동
   useEffect(() => {
     if (rideStatus === 'rejected') {
-      alert('운전자가 신청을 거절했습니다.');
+      showToast('운전자가 신청을 거절했습니다.', 'error');
       clearActiveCarpool();
       setState('HOME');
     }
     if (rideStatus === 'cancelled') {
-      alert('매칭이 취소되었습니다.');
+      showToast('매칭이 취소되었습니다.', 'error');
       clearActiveCarpool();
       setState('HOME');
     }
     if (rideStatus === 'completed') {
-      alert('카풀이 완료되었습니다!');
+      showToast('카풀이 완료되었습니다!', 'success');
       clearActiveCarpool();
       setState('HOME');
     }
@@ -133,13 +135,13 @@ export function PassengerMatchedScreen() {
         <button
           onClick={async () => {
             if (!currentRide?.id) return;
-            if (!confirm('탑승 신청을 취소하시겠습니까?')) return;
+            if (!(await showConfirm('탑승 신청을 취소하시겠습니까?'))) return;
             try {
               await cancelRide(currentRide.id, 'passenger', user?.uid ?? '');
               clearActiveCarpool();
               setState('HOME');
             } catch (e: any) {
-              alert(e.message || '취소 중 오류가 발생했습니다.');
+              showToast(e.message || '취소 중 오류가 발생했습니다.', 'error');
             }
           }}
           className="w-full py-4 text-red-500 font-bold text-sm border border-red-200 rounded-xl"

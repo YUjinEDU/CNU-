@@ -4,6 +4,8 @@ import { motion } from 'motion/react';
 import { sendMessage, subscribeToMessages, sendSystemMessage, ChatMessage } from '../lib/chatService';
 import { subscribeToRide, confirmRide, cancelRide, completeRide, updateRideField, updateRouteStatus } from '../lib/firebaseDb';
 import { useApp } from '../contexts/AppContext';
+import { showToast } from './Toast';
+import { showConfirm } from './ConfirmModal';
 
 export function ChatRoom() {
   const { user, currentRide, setCurrentRide, setState, clearActiveCarpool } = useApp();
@@ -36,17 +38,17 @@ export function ChatRoom() {
     if (!liveRide) return;
     if (liveRide.status === 'cancelled') {
       const who = liveRide.cancelledBy === 'driver' ? '운전자' : '탑승자';
-      alert(`${who}가 매칭을 취소했습니다.`);
+      showToast(`${who}가 매칭을 취소했습니다.`, 'error');
       clearActiveCarpool();
       setState('HOME');
     }
     if (liveRide.status === 'rejected') {
-      alert('운전자가 신청을 거절했습니다.');
+      showToast('운전자가 신청을 거절했습니다.', 'error');
       clearActiveCarpool();
       setState('HOME');
     }
     if (liveRide.status === 'completed') {
-      alert('카풀이 완료되었습니다!');
+      showToast('카풀이 완료되었습니다!', 'success');
       clearActiveCarpool();
       setState('HOME');
     }
@@ -86,20 +88,20 @@ export function ChatRoom() {
         await sendSystemMessage(rideId, `${user.name}님이 합의를 확정했습니다. 상대방의 확정을 기다립니다.`);
       }
     } catch (e: any) {
-      alert(e.message || '확정 중 오류가 발생했습니다.');
+      showToast(e.message || '확정 중 오류가 발생했습니다.', 'error');
     }
   };
 
   const handleCancel = async () => {
     if (!rideId || !user || !liveRide) return;
-    if (!confirm('정말 매칭을 취소하시겠습니까?')) return;
+    if (!(await showConfirm('정말 매칭을 취소하시겠습니까?'))) return;
     try {
       await cancelRide(rideId, myRole, user.uid);
       await sendSystemMessage(rideId, `${user.name}님이 매칭을 취소했습니다.`);
       clearActiveCarpool();
       setState('HOME');
     } catch (e: any) {
-      alert(e.message || '취소 중 오류가 발생했습니다.');
+      showToast(e.message || '취소 중 오류가 발생했습니다.', 'error');
     }
   };
 
@@ -110,7 +112,7 @@ export function ChatRoom() {
       await updateRideField(rideId, { [field]: true });
       await sendSystemMessage(rideId, `${user.name}님이 약속 장소에 도착했습니다!`);
     } catch (e: any) {
-      alert(e.message || '도착 알림 전송 중 오류가 발생했습니다.');
+      showToast(e.message || '도착 알림 전송 중 오류가 발생했습니다.', 'error');
     }
   };
 
@@ -121,13 +123,13 @@ export function ChatRoom() {
       await updateRideField(rideId, { [field]: true });
       await sendSystemMessage(rideId, `${user.name}님이 차량에 탑승했습니다!`);
     } catch (e: any) {
-      alert(e.message || '탑승 알림 전송 중 오류가 발생했습니다.');
+      showToast(e.message || '탑승 알림 전송 중 오류가 발생했습니다.', 'error');
     }
   };
 
   const handleComplete = async () => {
     if (!rideId || !liveRide) return;
-    if (!confirm('카풀을 완료하시겠습니까?')) return;
+    if (!(await showConfirm('카풀을 완료하시겠습니까?'))) return;
     try {
       await completeRide(rideId, liveRide.driverId, liveRide.passengerId);
       // route는 active 유지 — 복수 탑승자 지원. 운전자가 직접 "운행 종료"로 닫음.
@@ -135,7 +137,7 @@ export function ChatRoom() {
       clearActiveCarpool();
       setState('HOME');
     } catch (e: any) {
-      alert(e.message || '완료 처리 중 오류가 발생했습니다.');
+      showToast(e.message || '완료 처리 중 오류가 발생했습니다.', 'error');
     }
   };
 
