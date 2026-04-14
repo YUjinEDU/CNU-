@@ -103,7 +103,7 @@ export function PassengerMatchedScreen() {
           {selectedRoute?.departureTime && (
             <div className="ml-auto text-right">
               <span className="text-lg font-black text-primary-container">{selectedRoute.departureTime}</span>
-              <p className="text-[8px] text-on-surface-variant uppercase">출발</p>
+              <p className="text-[10px] text-on-surface-variant uppercase">출발</p>
             </div>
           )}
         </div>

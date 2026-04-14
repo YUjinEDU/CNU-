@@ -117,7 +117,7 @@ export function PassengerSearchScreen() {
                     </div>
                     <div className="text-right">
                       <span className="text-xl font-black text-primary-container block">{route.departureTime}</span>
-                      <span className="text-[8px] font-medium text-on-surface-variant uppercase">출발</span>
+                      <span className="text-[10px] font-medium text-on-surface-variant uppercase">출발</span>
                     </div>
                   </div>
 

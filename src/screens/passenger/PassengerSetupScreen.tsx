@@ -51,7 +51,12 @@ export function PassengerSetupScreen() {
       animate={{ opacity: 1, x: 0 }}
       className="px-6 py-8 space-y-6 pb-32"
     >
-      <h2 className="text-3xl font-extrabold text-primary-container tracking-tight">카풀 검색하기</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-3xl font-extrabold text-primary-container tracking-tight">카풀 검색하기</h2>
+        <button onClick={() => setState('HOME')} className="text-primary-container text-sm font-bold bg-blue-50 px-4 py-2 rounded-full">
+          취소
+        </button>
+      </div>
 
       {/* 출근/퇴근 토글 */}
       <div className="flex bg-surface-container-lowest rounded-xl p-1.5 shadow-sm">

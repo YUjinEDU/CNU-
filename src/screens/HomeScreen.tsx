@@ -158,7 +158,7 @@ export function HomeScreen() {
             <p className="text-[11px] opacity-80 mt-0.5">{restriction.description}</p>
           </div>
         </div>
-      ) : (
+      ) : (user?.role === 'driver' || user?.role === 'both') ? (
         <div className="bg-amber-50 text-amber-700 px-5 py-4 rounded-xl flex items-center gap-4 border-l-4 border-amber-500">
           <div className="bg-amber-500 text-white p-2 rounded-lg">
             <AlertTriangle className="w-5 h-5" />
@@ -168,7 +168,7 @@ export function HomeScreen() {
             <p className="text-[11px] opacity-80 mt-0.5">프로필에서 차량 정보를 등록하면 2부제를 자동 확인합니다.</p>
           </div>
         </div>
-      )}
+      ) : null}
 
       {/* Action Grid */}
       <div className="grid grid-cols-1 gap-4">

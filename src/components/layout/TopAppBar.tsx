@@ -15,7 +15,7 @@ export function TopAppBar({ title = "CNU 카풀" }: TopAppBarProps) {
         <div className="flex items-center gap-3">
           <School className="text-primary-container w-6 h-6" />
           <div className="flex flex-col">
-            <span className="text-[10px] uppercase tracking-widest text-on-surface-variant font-semibold">Chungnam National University</span>
+            <span className="text-[10px] text-on-surface-variant font-semibold">충남대학교</span>
             <h1 className="text-lg font-bold tracking-tight font-headline text-primary-container">{title}</h1>
           </div>
         </div>
