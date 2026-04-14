@@ -4,6 +4,7 @@ import { motion } from 'motion/react';
 import { subscribeToRide, cancelRide } from '../../lib/firebaseDb';
 import { useApp } from '../../contexts/AppContext';
 import { showToast } from '../../components/Toast';
+import { maskName, maskAddress } from '../../lib/privacyUtils';
 import { showConfirm } from '../../components/ConfirmModal';
 
 export function PassengerMatchedScreen() {
@@ -97,9 +98,11 @@ export function PassengerMatchedScreen() {
             </span>
           </div>
           <div>
-            <p className="font-bold text-on-surface">{selectedRoute?.driverName}</p>
+            <p className="font-bold text-on-surface">
+              {rideStatus === 'pending' ? maskName(selectedRoute?.driverName || '') : selectedRoute?.driverName}
+            </p>
             <p className="text-xs text-on-surface-variant">
-              {selectedRoute?.sourceName} → {selectedRoute?.destName}
+              {rideStatus === 'pending' ? maskAddress(selectedRoute?.sourceName || '') : selectedRoute?.sourceName} → {selectedRoute?.destName}
             </p>
           </div>
           {selectedRoute?.departureTime && (

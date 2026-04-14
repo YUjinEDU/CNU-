@@ -46,12 +46,37 @@ export async function createRoute(route: Omit<Route, 'id' | 'createdAt'>): Promi
 
 export async function updateRouteStatus(id: string, status: Route['status']): Promise<void> {
   await updateDoc(doc(db, 'routes', id), { status });
+
+  // route 취소 시 연관 pending/active ride도 일괄 취소
+  if (status === 'cancelled') {
+    const activeStatuses = ['pending', 'accepted', 'confirming', 'confirmed'];
+    for (const s of activeStatuses) {
+      const q = query(collection(db, 'rides'), where('routeId', '==', id), where('status', '==', s));
+      const snap = await getDocs(q);
+      for (const d of snap.docs) {
+        await updateDoc(doc(db, 'rides', d.id), { status: 'cancelled', cancelledBy: 'driver' });
+      }
+    }
+  }
 }
 
 export function subscribeToActiveRoutes(callback: (routes: Route[]) => void): Unsubscribe {
   const q = query(collection(db, 'routes'), where('status', '==', 'active'));
   return onSnapshot(q, snap => {
-    callback(snap.docs.map(d => ({ ...d.data(), id: d.id } as Route)));
+    const now = Date.now();
+    const MAX_AGE = 24 * 60 * 60 * 1000; // 24시간
+    const routes = snap.docs
+      .map(d => ({ ...d.data(), id: d.id } as Route))
+      .filter(r => {
+        const age = now - new Date(r.createdAt).getTime();
+        if (age > MAX_AGE) {
+          // 24시간 지난 route 자동 취소 (비동기, fire-and-forget)
+          updateRouteStatus(r.id!, 'cancelled');
+          return false;
+        }
+        return true;
+      });
+    callback(routes);
   });
 }
 
@@ -184,6 +209,10 @@ export async function cancelRide(
   cancelledBy: 'driver' | 'passenger',
   cancellerUid: string
 ): Promise<void> {
+  // ride 정보를 먼저 읽어서 좌석 복원 여부 판단
+  const rideSnap = await getDoc(doc(db, 'rides', rideId));
+  const rideData = rideSnap.exists() ? rideSnap.data() : null;
+
   const batch = writeBatch(db);
   batch.update(doc(db, 'rides', rideId), {
     status: 'cancelled',
@@ -192,6 +221,13 @@ export async function cancelRide(
   batch.update(doc(db, 'users', cancellerUid), {
     'stats.cancelCount': increment(1),
   });
+  // accepted 이후 취소면 좌석 복원
+  if (rideData && ['accepted', 'confirming', 'confirmed'].includes(rideData.status) && rideData.routeId) {
+    batch.update(doc(db, 'routes', rideData.routeId), {
+      availableSeats: increment(1),
+      status: 'active', // matched였으면 다시 active로
+    });
+  }
   await batch.commit();
 }
 
