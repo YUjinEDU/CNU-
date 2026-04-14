@@ -145,51 +145,71 @@ export function DriverSetupScreen() {
           )}
         </div>
 
-        {/* 출발 시간 + 좌석 */}
-        <div className="grid grid-cols-2 gap-4">
-          <div className="bg-surface-container-lowest rounded-xl p-5 shadow-sm">
-            <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mb-3 block">출발 시간</label>
-            <div className="flex items-center gap-2">
-              <Clock className="w-5 h-5 text-primary-container flex-shrink-0" />
-              <select
-                value={departureHour}
-                onChange={e => setDepartureHour(parseInt(e.target.value))}
-                className="bg-transparent text-xl font-bold text-primary-container outline-none appearance-none"
-              >
-                {Array.from({ length: 14 }, (_, i) => i + 6).map(h => (
-                  <option key={h} value={h}>{String(h).padStart(2, '0')}</option>
-                ))}
-              </select>
-              <span className="text-xl font-bold text-primary-container">:</span>
-              <select
-                value={departureMinute}
-                onChange={e => setDepartureMinute(parseInt(e.target.value))}
-                className="bg-transparent text-xl font-bold text-primary-container outline-none appearance-none"
-              >
-                {[0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55].map(m => (
-                  <option key={m} value={m}>{String(m).padStart(2, '0')}</option>
-                ))}
-              </select>
+        {/* 출발 시간 */}
+        <div className="bg-surface-container-lowest rounded-xl p-5 shadow-sm">
+          <label className="text-[10px] font-bold text-on-surface-variant mb-4 block">출발 시간</label>
+          <div className="flex items-center justify-center gap-3">
+            <button
+              onClick={() => setDepartureHour(h => h > 6 ? h - 1 : 19)}
+              className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 active:scale-90 transition-all"
+            >
+              <Minus className="w-4 h-4" />
+            </button>
+            <div className="flex items-center gap-1 bg-primary-container/5 px-6 py-3 rounded-2xl">
+              <Clock className="w-5 h-5 text-primary-container mr-2" />
+              <span className="text-4xl font-black text-primary-container tabular-nums">
+                {String(departureHour).padStart(2, '0')}
+              </span>
+              <span className="text-4xl font-black text-primary-container animate-pulse">:</span>
+              <span className="text-4xl font-black text-primary-container tabular-nums">
+                {String(departureMinute).padStart(2, '0')}
+              </span>
             </div>
+            <button
+              onClick={() => setDepartureHour(h => h < 19 ? h + 1 : 6)}
+              className="w-10 h-10 rounded-full bg-primary-container/10 flex items-center justify-center text-primary-container active:scale-90 transition-all"
+            >
+              <Plus className="w-4 h-4" />
+            </button>
           </div>
+          {/* 분 선택 칩 */}
+          <div className="flex justify-center gap-2 mt-4 flex-wrap">
+            {[0, 10, 15, 20, 30, 40, 45, 50].map(m => (
+              <button
+                key={m}
+                onClick={() => setDepartureMinute(m)}
+                className={`px-3.5 py-1.5 rounded-full text-sm font-bold transition-all ${
+                  departureMinute === m
+                    ? 'bg-primary-container text-white shadow-md scale-105'
+                    : 'bg-slate-100 text-slate-500 active:scale-95'
+                }`}
+              >
+                :{String(m).padStart(2, '0')}
+              </button>
+            ))}
+          </div>
+        </div>
 
-          <div className="bg-surface-container-lowest rounded-xl p-5 shadow-sm">
-            <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mb-3 block">잔여 좌석</label>
-            <div className="flex items-center justify-between">
-              <button
-                onClick={() => setAvailableSeats(Math.max(1, availableSeats - 1))}
-                className="w-8 h-8 rounded-full border border-outline-variant flex items-center justify-center"
-              >
-                <Minus className="w-4 h-4" />
-              </button>
-              <span className="text-xl font-bold text-primary-container">{availableSeats}</span>
-              <button
-                onClick={() => setAvailableSeats(Math.min(6, availableSeats + 1))}
-                className="w-8 h-8 rounded-full border border-primary-container bg-primary-container/10 flex items-center justify-center text-primary-container"
-              >
-                <Plus className="w-4 h-4" />
-              </button>
+        {/* 잔여 좌석 */}
+        <div className="bg-surface-container-lowest rounded-xl p-5 shadow-sm">
+          <label className="text-[10px] font-bold text-on-surface-variant mb-4 block">탑승 가능 인원</label>
+          <div className="flex items-center justify-center gap-6">
+            <button
+              onClick={() => setAvailableSeats(Math.max(1, availableSeats - 1))}
+              className="w-12 h-12 rounded-full border-2 border-slate-200 flex items-center justify-center active:scale-90 transition-all"
+            >
+              <Minus className="w-5 h-5 text-slate-500" />
+            </button>
+            <div className="text-center">
+              <span className="text-4xl font-black text-primary-container">{availableSeats}</span>
+              <p className="text-xs text-on-surface-variant font-bold mt-1">명</p>
             </div>
+            <button
+              onClick={() => setAvailableSeats(Math.min(6, availableSeats + 1))}
+              className="w-12 h-12 rounded-full border-2 border-primary-container bg-primary-container/10 flex items-center justify-center text-primary-container active:scale-90 transition-all"
+            >
+              <Plus className="w-5 h-5" />
+            </button>
           </div>
         </div>
       </div>
