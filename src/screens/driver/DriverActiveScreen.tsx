@@ -8,11 +8,13 @@ import { getDistance } from '../../lib/geoUtils';
 import { useApp } from '../../contexts/AppContext';
 import { showToast } from '../../components/Toast';
 import { showConfirm } from '../../components/ConfirmModal';
+import { RouteEditModal } from '../../components/RouteEditModal';
 
 export function DriverActiveScreen() {
-  const { setState, user, driverSource, driverDest, setCurrentRide, driverSourceCoord, currentRoute, clearActiveCarpool } = useApp();
+  const { setState, user, driverSource, driverDest, setCurrentRide, driverSourceCoord, currentRoute, setCurrentRoute, clearActiveCarpool } = useApp();
   const [pendingRides, setPendingRides] = useState<Ride[]>([]);
   const [remainingSeats, setRemainingSeats] = useState<number>(currentRoute?.availableSeats ?? 0);
+  const [showEdit, setShowEdit] = useState(false);
 
   // 실시간 탑승 신청 구독
   useEffect(() => {
@@ -98,16 +100,38 @@ export function DriverActiveScreen() {
           </div>
           <div className="flex-1 space-y-4">
             <div>
-              <p className="text-[10px] font-bold text-on-surface-variant uppercase">출발</p>
+              <p className="text-[10px] font-bold text-on-surface-variant">출발</p>
               <p className="font-semibold text-on-surface">{driverSource || '출발지'}</p>
             </div>
             <div>
-              <p className="text-[10px] font-bold text-on-surface-variant uppercase">도착</p>
+              <p className="text-[10px] font-bold text-on-surface-variant">도착</p>
               <p className="font-semibold text-on-surface">{driverDest || '도착지'}</p>
             </div>
           </div>
         </div>
+        {currentRoute && (
+          <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+            <p className="text-xs text-on-surface-variant">
+              {currentRoute.departureDate?.slice(5).replace('-', '/')} · {currentRoute.departureTime} 출발 · {remainingSeats}석
+            </p>
+            <button onClick={() => setShowEdit(true)} className="text-primary-container text-xs font-bold bg-blue-50 px-3 py-1.5 rounded-full">
+              수정
+            </button>
+          </div>
+        )}
       </div>
+
+      {/* 운행 수정 모달 */}
+      {showEdit && currentRoute && (
+        <RouteEditModal
+          route={currentRoute}
+          onClose={() => setShowEdit(false)}
+          onSaved={(updated) => {
+            setCurrentRoute(updated);
+            setRemainingSeats(updated.availableSeats ?? 0);
+          }}
+        />
+      )}
 
       {/* 탑승 신청 목록 */}
       {sortedRides.length === 0 ? (
