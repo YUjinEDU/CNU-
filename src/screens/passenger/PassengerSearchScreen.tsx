@@ -1,5 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Hand, Clock, Car, Users, ArrowRight, MapPin } from 'lucide-react';
+import { format, addDays } from 'date-fns';
+import { ko } from 'date-fns/locale';
 import { motion } from 'motion/react';
 import { Route } from '../../types';
 import { createRide, hasActiveRide } from '../../lib/firebaseDb';
@@ -8,7 +10,7 @@ import { useApp } from '../../contexts/AppContext';
 import { showToast } from '../../components/Toast';
 
 export function PassengerSearchScreen() {
-  const { setState, availableRoutes, setSelectedRoute, pickupPoint, user, setCurrentRide, searchMode, searchDate } = useApp();
+  const { setState, availableRoutes, setSelectedRoute, pickupPoint, user, setCurrentRide, searchMode, searchDate, setSearchDate } = useApp();
   const [applying, setApplying] = useState<string | null>(null);
   const isReturn = searchMode === 'return';
 
@@ -78,7 +80,7 @@ export function PassengerSearchScreen() {
     >
       <div className="px-2 flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-extrabold text-primary-container">검색 결과 · {searchDate?.slice(5).replace('-', '/')}</h2>
+          <h2 className="text-2xl font-extrabold text-primary-container">검색 결과</h2>
           <p className="text-on-surface-variant text-sm font-medium">
             {pickupPoint ? (isReturn ? '내 집 방향 기준 거리순' : '내 출발지 기준 거리순') : '출발시간 빠른 순'} · {sortedRoutes.length}대
           </p>
@@ -89,6 +91,29 @@ export function PassengerSearchScreen() {
         >
           다시 검색
         </button>
+      </div>
+
+      {/* 날짜 탭 — 스크롤 */}
+      <div className="flex gap-2 overflow-x-auto no-scrollbar px-1">
+        {Array.from({ length: 14 }, (_, i) => {
+          const d = addDays(new Date(), i);
+          const dateStr = format(d, 'yyyy-MM-dd');
+          const dayLabel = i === 0 ? '오늘' : i === 1 ? '내일' : format(d, 'EEE', { locale: ko });
+          const dateLabel = format(d, 'M/d');
+          const isSelected = searchDate === dateStr;
+          return (
+            <button
+              key={i}
+              onClick={() => setSearchDate(dateStr)}
+              className={`flex flex-col items-center shrink-0 px-3 py-2 rounded-xl transition-all ${
+                isSelected ? 'bg-primary-container text-white shadow-md' : 'bg-slate-100 text-slate-500'
+              }`}
+            >
+              <span className="text-[10px] font-medium">{dayLabel}</span>
+              <span className="text-sm font-bold">{dateLabel}</span>
+            </button>
+          );
+        })}
       </div>
 
       {sortedRoutes.length === 0 ? (
