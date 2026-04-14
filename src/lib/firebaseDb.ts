@@ -20,7 +20,11 @@ export async function saveUser(user: User): Promise<void> {
 
 export async function getAllUsers(): Promise<User[]> {
   const snap = await getDocs(collection(db, 'users'));
-  return snap.docs.map(d => d.data() as User);
+  return snap.docs.map(d => {
+    const data = d.data();
+    const { passwordHash, ...safeData } = data;
+    return safeData as User;
+  });
 }
 
 // ── Routes ──

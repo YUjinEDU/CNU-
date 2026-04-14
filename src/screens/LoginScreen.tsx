@@ -1,20 +1,18 @@
 import { useState, useEffect } from 'react';
-import { School, Hash, Lock, Eye, EyeOff, X, Car, Users } from 'lucide-react';
+import { School, Hash, Lock, Eye, EyeOff, X, Car } from 'lucide-react';
 import { motion } from 'motion/react';
 import { login, resetPassword } from '../lib/authService';
 import { useApp } from '../contexts/AppContext';
-import { getActiveRoutes, getAllUsers } from '../lib/firebaseDb';
+import { getActiveRoutes } from '../lib/firebaseDb';
 
 export function LoginScreen() {
   const { setUser, setState } = useApp();
   const [employeeId, setEmployeeId] = useState('');
   const [password, setPassword] = useState('');
   const [activeCount, setActiveCount] = useState(0);
-  const [userCount, setUserCount] = useState(0);
 
   useEffect(() => {
     getActiveRoutes().then(r => setActiveCount(r.length));
-    getAllUsers().then(u => setUserCount(u.length));
   }, []);
   const [showPw, setShowPw] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -53,15 +51,11 @@ export function LoginScreen() {
         <School className="w-20 h-20 text-primary-container mx-auto" />
         <h1 className="text-4xl font-black text-primary-container tracking-tight">CNU 카풀</h1>
         <p className="text-on-surface-variant font-medium">충남대학교 카풀 서비스</p>
-        {(activeCount > 0 || userCount > 0) && (
-          <div className="flex justify-center gap-3 pt-2">
+        {activeCount > 0 && (
+          <div className="flex justify-center pt-2">
             <span className="bg-blue-50 text-primary-container px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5">
               <Car className="w-3.5 h-3.5" />
               모집 중 {activeCount}건
-            </span>
-            <span className="bg-green-50 text-green-700 px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5">
-              <Users className="w-3.5 h-3.5" />
-              가입자 {userCount}명
             </span>
           </div>
         )}
